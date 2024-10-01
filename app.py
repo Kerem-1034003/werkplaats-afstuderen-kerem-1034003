@@ -1,24 +1,29 @@
 import pandas as pd
-from googletrans import Translator
 import openai
 
 openai.api_key = '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'
-
-translator = Translator()
 
 df = pd.read_excel('kinderschommels.xlsx')
  
 columns_to_translate = ['Name', 'Category', 'Color', 'Description', 'Bullet Points']
 
 # functie translate
-def translate_text(text):
+def translate_text_with_openai(text):
     if pd.notnull(text):
-        try: 
-            translated_text = translator.translate(text, src='de', dest='nl').text
-            return translated_text
-        except Exception as e: 
-            print(f"vertaling error:{e}")
-        return text
+        try:
+            # Vraag OpenAI om de tekst naar Nederlands te vertalen
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Translate this text to Dutch: {text}"}
+                ],
+                max_tokens=350  # Limiteer de lengte van de vertaling
+            )
+            translated_text = response['choices'][0]['message']['content']
+            return translated_text.strip()
+        except Exception as e:
+            print(f"Translation error: {e}")
+            return text  # Geef de originele tekst terug bij een fout
     return text
 
 #functie beschrijving
@@ -42,7 +47,7 @@ def improve_description(description):
 
 for column in columns_to_translate:
     if column in df.columns:
-        df[column] = df[column]. apply(translate_text)
+        df[column] = df[column].apply(translate_text_with_openai)
 
 if 'Description' in df.columns:
     df['Description'] = df['Description'].apply(improve_description)
