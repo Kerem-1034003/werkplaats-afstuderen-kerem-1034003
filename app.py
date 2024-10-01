@@ -23,7 +23,7 @@ def translate_text_with_openai(text):
                 messages=[
                     {"role": "user", "content": f"Translate this text to Dutch: {text}"}
                 ],
-                max_tokens=350  # Limiteer de lengte van de vertaling
+                max_tokens=700  # Limiteer de lengte van de vertaling
             )
             translated_text = response['choices'][0]['message']['content']
             return translated_text.strip()
@@ -42,7 +42,7 @@ def improve_description(description):
                 messages=[
                     {"role": "user", "content": f"Verbeter deze productbeschrijving en let op dat de specificaties ook staan beschreven onder de productbeschrijving.Het moet ook in html formaat met gebruik van <p>,<h3>,<ul>,<li>. : {description}"}
                 ],
-                max_tokens=350  # Aantal tokens in de reactie
+                max_tokens=700  # Aantal tokens in de reactie
             )
             improved_text = response['choices'][0]['message']['content']
             return improved_text.strip()
@@ -60,7 +60,7 @@ def improve_bullet_points(bullet_points):
                 messages=[
                     {"role": "user", "content": f"Verbeter de beschrijving houd het klantvriendelijk, het moet ook in html formaat met gebruik van <p>,<h3>,<ul>,<li>: {bullet_points}"}
                 ],
-                max_tokens=350  # Limiteer de lengte van de verbeterde bullet points
+                max_tokens=700  # Limiteer de lengte van de verbeterde bullet points
             )
             improved_text = response['choices'][0]['message']['content']
             return improved_text.strip()
