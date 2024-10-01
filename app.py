@@ -10,7 +10,6 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
 df = pd.read_excel('kinderschommels.xlsx')
- 
 columns_to_translate = ['Name', 'Category', 'Color', 'Description', 'Bullet Points']
 
 # functie translate
@@ -51,6 +50,25 @@ def improve_description(description):
             return description  # Geef originele tekst terug bij fout
     return description
 
+# functie naam verbeteren
+def improve_name(name, description):
+    if pd.notnull(name):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Verbeter de productnaam '{name}' en maak het logisch en beschrijvend. Gebruik de beschrijving: '{description}' om de naam kloppend te maken."}
+                ],
+                max_tokens=700
+            )
+            improved_text = response['choices'][0]['message']['content']
+            return improved_text.strip()
+        except Exception as e:
+            print(f"Error improving name: {e}")
+            return name
+    return name
+
+# functie bullet points verbeteren
 def improve_bullet_points(bullet_points):
     if pd.notnull(bullet_points):
         try:
@@ -69,16 +87,24 @@ def improve_bullet_points(bullet_points):
             return bullet_points  # Geef de originele bullet points terug bij een fout
     return bullet_points
 
+# Vertalen van kolommen
 for column in columns_to_translate:
     if column in df.columns:
         df[column] = df[column].apply(translate_text_with_openai)
 
+# Verbetering van de beschrijving
 if 'Description' in df.columns:
     df['Description'] = df['Description'].apply(improve_description)
 
+# Verbetering van de naam
+if 'Name' in df.columns and 'Description' in df.columns:
+    df['Name'] = df.apply(lambda row: improve_name(row['Name'], row['Description']), axis=1)
+
+# Verbetering van de bullet points
 if 'Bullet Points' in df.columns:
     df['Bullet Points'] = df['Bullet Points'].apply(improve_bullet_points)
 
-df.to_excel('translated_and_improved_data.xlsx', index=False)
+# Opslaan naar een nieuw bestand
+df.to_excel('improved_data.xlsx', index=False)
 
 print ("Het bestand is vertaald en juist beschreven")
