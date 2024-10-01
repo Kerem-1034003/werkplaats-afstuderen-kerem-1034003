@@ -34,7 +34,7 @@ def improve_description(description):
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "user", "content": f"Verbeter deze productbeschrijving en let er op dat de specificaties ook staan beschreven: {description}"}
+                    {"role": "user", "content": f"Verbeter deze productbeschrijving en let op dat de specificaties ook staan beschreven onder de productbeschrijving.Het moet ook in html formaat met gebruik van <p>,<h3>,<ul>,<li>. : {description}"}
                 ],
                 max_tokens=350  # Aantal tokens in de reactie
             )
@@ -45,12 +45,33 @@ def improve_description(description):
             return description  # Geef originele tekst terug bij fout
     return description
 
+def improve_bullet_points(bullet_points):
+    if pd.notnull(bullet_points):
+        try:
+            # Vraag OpenAI om de bullet points te verbeteren
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Verbeter de beschrijving houd het klantvriendelijk, het moet ook in html formaat met gebruik van <p>,<h3>,<ul>,<li>: {bullet_points}"}
+                ],
+                max_tokens=350  # Limiteer de lengte van de verbeterde bullet points
+            )
+            improved_text = response['choices'][0]['message']['content']
+            return improved_text.strip()
+        except Exception as e:
+            print(f"Error improving bullet points: {e}")
+            return bullet_points  # Geef de originele bullet points terug bij een fout
+    return bullet_points
+
 for column in columns_to_translate:
     if column in df.columns:
         df[column] = df[column].apply(translate_text_with_openai)
 
 if 'Description' in df.columns:
     df['Description'] = df['Description'].apply(improve_description)
+
+if 'Bullet Points' in df.columns:
+    df['Bullet Points'] = df['Bullet Points'].apply(improve_bullet_points)
 
 df.to_excel('translated_and_improved_data.xlsx', index=False)
 
