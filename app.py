@@ -1,7 +1,13 @@
+import os
+from dotenv import load_dotenv
 import pandas as pd
 import openai
 
-openai.api_key = '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'
+load_dotenv()
+
+openai_api_key = os.getenv('OPENAI_API_KEY')
+
+openai.api_key = openai_api_key
 
 df = pd.read_excel('kinderschommels.xlsx')
  
