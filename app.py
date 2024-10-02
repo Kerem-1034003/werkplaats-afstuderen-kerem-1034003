@@ -9,7 +9,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 
 openai.api_key = openai_api_key
 
-df = pd.read_excel('kinderschommels.xlsx')
+df = pd.read_excel('excel/kinderschommels.xlsx')
 columns_low_temp = ['Material','Category', 'Color']
 columns_high_temp = ['Name','Description','Bullet Points']
 
