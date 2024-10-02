@@ -13,9 +13,13 @@ df = pd.read_excel('kinderschommels.xlsx')
 columns_low_temp = ['Material','Category', 'Color']
 columns_high_temp = ['Name','Description','Bullet Points']
 
+abbreviations = ['PE', 'PU', 'PVC'] 
+
 # functie voor vertalen met lage temperature (voor nauwkeurigheid)
 def translate_text_low_temp(text):
     if pd.notnull(text):
+        if text in abbreviations:
+            return text
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -77,7 +81,7 @@ def improve_name(name, description):
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "user", "content": f"Verbeter de productnaam '{name}' en maak het logisch en beschrijvend. Gebruik de beschrijving: '{description}' om de naam kloppend te maken."}
+                    {"role": "user", "content": f"Verbeter de productnaam '{name}' en maak het logisch. Gebruik de beschrijving: '{description}' om de naam kloppend te maken."}
                 ],
                 max_tokens=700
             )
