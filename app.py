@@ -10,25 +10,45 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
 df = pd.read_excel('kinderschommels.xlsx')
-columns_to_translate = ['Name', 'Category', 'Color', 'Description', 'Bullet Points']
+columns_low_temp = ['Material','Category', 'Color']
+columns_high_temp = ['Name','Description','Bullet Points']
 
-# functie translate
-def translate_text_with_openai(text):
+# functie voor vertalen met lage temperature (voor nauwkeurigheid)
+def translate_text_low_temp(text):
     if pd.notnull(text):
         try:
-            # Vraag OpenAI om de tekst naar Nederlands te vertalen
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "user", "content": f"Translate this text to Dutch: {text}"}
                 ],
-                max_tokens=700  # Limiteer de lengte van de vertaling
+                temperature=0,  # Lage temperature voor consistentie
+                max_tokens=700
             )
             translated_text = response['choices'][0]['message']['content']
             return translated_text.strip()
         except Exception as e:
-            print(f"Translation error: {e}")
-            return text  # Geef de originele tekst terug bij een fout
+            print(f"Translation error (low temp): {e}")
+            return text
+    return text
+
+# functie voor vertalen met hogere temperature (voor vloeiende output)
+def translate_text_high_temp(text):
+    if pd.notnull(text):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": f"Translate this text to Dutch: {text}"}
+                ],
+                temperature=0.7,  # Hogere temperature voor vloeiendere vertaling
+                max_tokens=700
+            )
+            translated_text = response['choices'][0]['message']['content']
+            return translated_text.strip()
+        except Exception as e:
+            print(f"Translation error (high temp): {e}")
+            return text
     return text
 
 #functie beschrijving
@@ -87,20 +107,25 @@ def improve_bullet_points(bullet_points):
             return bullet_points  # Geef de originele bullet points terug bij een fout
     return bullet_points
 
-# Vertalen van kolommen
-for column in columns_to_translate:
+# Stap 1: Vertaling van de kolommen met lage temperature
+for column in columns_low_temp:
     if column in df.columns:
-        df[column] = df[column].apply(translate_text_with_openai)
+        df[column] = df[column].apply(translate_text_low_temp)
 
-# Verbetering van de beschrijving
+# Stap 2: Vertaling van de kolommen met hogere temperature (Description, Bullet Points)
+for column in columns_high_temp:
+    if column in df.columns:
+        df[column] = df[column].apply(translate_text_high_temp)
+
+# Stap 3: Verbetering van de beschrijving
 if 'Description' in df.columns:
     df['Description'] = df['Description'].apply(improve_description)
 
-# Verbetering van de naam
+# Stap 4: Verbetering van de naam met behulp van description
 if 'Name' in df.columns and 'Description' in df.columns:
     df['Name'] = df.apply(lambda row: improve_name(row['Name'], row['Description']), axis=1)
 
-# Verbetering van de bullet points
+# Stap 5: Verbetering van de bullet points
 if 'Bullet Points' in df.columns:
     df['Bullet Points'] = df['Bullet Points'].apply(improve_bullet_points)
 
