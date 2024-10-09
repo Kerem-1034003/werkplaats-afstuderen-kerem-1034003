@@ -15,6 +15,11 @@ column_meta_title = '_yoast_wpseo_title'
 column_meta_description = '_yoast_wpseo_metadesc'
 column_focus_keyword = '_yoast_wpseo_focuskw'
 
+max_title_length = 60  
+max_description_length = 160  
+company_name = "AutoInkoopService"
+
+
 # Functie om tekst te splitsen op basis van alinea's
 def split_text_by_paragraphs(text, max_paragraphs):
     paragraphs = text.split("\n\n")  # Alinea's splitsen op dubbele enters
@@ -77,31 +82,40 @@ def rewrite_content(content):
 # Functie om nieuwe meta title te genereren
 def generate_meta_title(subject, focus_keyword):
     prompt = (
-        f"Schrijf een SEO-geoptimaliseerde meta title voor een informatieve pagina over {subject}, "
-        f"met focus op het zoekwoord '{focus_keyword}'. Zorg dat de title tussen de 50-60 karakters is en duidelijk aangeeft waar de pagina over gaat."
+        f"Schrijf een SEO-geoptimaliseerde meta title voor een informatieve pagina over {subject}. "
+        f"Het zoekwoord is '{focus_keyword}'. "
+        "De title moet maximaal 60 karakters bevatten en eindigen met een logische, afgeronde zin. "
+        "Vermijd afgebroken zinnen en zorg ervoor dat het professioneel en aantrekkelijk is voor de lezer. "
+        "Indien van toepassing, eindig met ' | AutoInkoopService'."
     )
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=60,
+        max_tokens=100,
     )
-    return response['choices'][0]['message']['content']
+    title = response['choices'][0]['message']['content'].strip()
+    return title
 
-# Functie om nieuwe meta description te genereren
-def generate_meta_description(subject, focus_keyword):
+
+def generate_meta_description(subject, focus_keyword, existing_description):
     prompt = (
-        f"Schrijf een SEO-geoptimaliseerde meta description voor een informatieve pagina over {subject} "
-        f"met het zoekwoord '{focus_keyword}'. De eerste zin moet de belangrijkste boodschap of het doel van de pagina benadrukken. "
-        f"De tweede zin moet de toegevoegde waarde of expertise van de pagina ondersteunen. "
-        f"De derde zin moet een call-to-action bevatten die aanmoedigt om verder te lezen of meer te ontdekken. "
-        "Houd de lengte tussen de 140-150 karakters."
+        f"Schrijf een SEO-geoptimaliseerde meta description voor een informatieve pagina over {subject}. "
+        f"Het zoekwoord is '{focus_keyword}'. "
+        "De eerste zin moet de belangrijkste boodschap van de pagina duidelijk maken. "
+        "Gebruik geen termen zoals 'vraag om een bod'. "
+        "De tweede zin moet de voordelen van het gebruik van de app benadrukken zonder afgebroken zinnen. "
+        "De derde zin moet een duidelijke call-to-action bevatten. "
+        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat en ik wil geen afkappingen. "
+        "Maak het logisch, professioneel en aantrekkelijk voor de lezer. "
+        f"Hier is een bestaande meta description: {existing_description}."
     )
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=160,
+        max_tokens=200,
     )
-    return response['choices'][0]['message']['content']
+    description = response['choices'][0]['message']['content'].strip()
+    return description
 
 new_meta_titles = []
 new_meta_descriptions = []
@@ -110,14 +124,15 @@ for idx, row in df.iterrows():
     # Herschrijf de content
     original_content = row[column_content]
     df.at[idx, column_content] = rewrite_content(original_content)
-    
+
     # Genereer nieuwe meta title en description
     subject = row[column_meta_title] if pd.notnull(row[column_meta_title]) else "Geen onderwerp"
     focus_keyword = row[column_focus_keyword] if pd.notnull(row[column_focus_keyword]) else "geen zoekwoord"
+    existing_description = row[column_meta_description] if pd.notnull(row[column_meta_description]) else ""
 
     new_meta_title = generate_meta_title(subject, focus_keyword)
-    new_meta_description = generate_meta_description(subject, focus_keyword)
-    
+    new_meta_description = generate_meta_description(subject, focus_keyword, existing_description)
+
     new_meta_titles.append(new_meta_title)
     new_meta_descriptions.append(new_meta_description)
 
