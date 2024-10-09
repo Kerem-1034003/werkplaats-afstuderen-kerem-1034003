@@ -84,37 +84,68 @@ def generate_meta_title(subject, focus_keyword):
     prompt = (
         f"Schrijf een SEO-geoptimaliseerde meta title voor een informatieve pagina over {subject}. "
         f"Het zoekwoord is '{focus_keyword}'. "
-        "De title moet maximaal 60 karakters bevatten en eindigen met een logische, afgeronde zin. "
-        "Vermijd afgebroken zinnen en zorg ervoor dat het professioneel en aantrekkelijk is voor de lezer. "
-        "Indien van toepassing, eindig met ' | AutoInkoopService'."
+        "De title moet maximaal 60 karakters bevatten inclusief spaties, inclusief eventuele toevoegingen. "
+        "Ik verwacht 1 korte en krachtige titel van maximaal 60 karakter inclusief spaties. "
+        "Vermijd afgebroken zinnen en zorg ervoor dat het professioneel en aantrekkelijk is voor de lezer."
+        "verwijder dit soort tekens '%%title%%'."
     )
+    
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=100,
     )
+    
     title = response['choices'][0]['message']['content'].strip()
-    return title
 
+    # Voeg bedrijfsnaam toe als de titel minder dan 43 karakters is
+    if len(title) < 43:
+        full_title = f"{title} | {company_name}"
+    else:
+        full_title = title
+
+    # Controleer de lengte van de uiteindelijke titel
+    if len(full_title) > 60:
+        # Bereken het maximale aantal karakters voor de titel
+        max_title_length = 60 - len(f" | {company_name}")  # 60 - lengte van de bedrijfsnaam
+        title = title[:max_title_length].rsplit(' ', 1)[0]  # Knip de titel af op de laatste spatie
+        full_title = f"{title} | {company_name}"
+
+    return full_title
 
 def generate_meta_description(subject, focus_keyword, existing_description):
     prompt = (
         f"Schrijf een SEO-geoptimaliseerde meta description voor een informatieve pagina over {subject}. "
         f"Het zoekwoord is '{focus_keyword}'. "
+        "Ik wil maximaal 2 zinnen in de description (dit zijn strikte regels): "
         "De eerste zin moet de belangrijkste boodschap van de pagina duidelijk maken. "
-        "Gebruik geen termen zoals 'vraag om een bod'. "
-        "De tweede zin moet de voordelen van het gebruik van de app benadrukken zonder afgebroken zinnen. "
-        "De derde zin moet een duidelijke call-to-action bevatten. "
-        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat en ik wil geen afkappingen. "
+        "De tweede zin moet een duidelijke call-to-action bevatten. "
+        "Gebruik geen termen zoals 'vraag om een bod'. Vervang het met 'ontvang een bod'. "
+        "Gebruik geen termen zoals 'ontvang cash'. "
+        "verwijder dit soort tekens '%%title%%'."
+        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat inclusief spaties (dit zijn strikte regels) en ik wil geen afkappingen. "
         "Maak het logisch, professioneel en aantrekkelijk voor de lezer. "
-        f"Hier is een bestaande meta description: {existing_description}."
+        f"Hier is een bestaande meta description die je kan gebruiken voor logica: {existing_description}."
     )
+    
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=200,
+        max_tokens=150,
     )
+    
     description = response['choices'][0]['message']['content'].strip()
+
+    # Check of de description meer dan 150 karakters is
+    if len(description) > 150:
+        # Fallback: inkorten van de description om de limiet te respecteren
+        description = description[:147].rsplit(' ', 1)[0] + '...'
+    
+    # Check of het aantal zinnen meer dan 2 is
+    if description.count('.') > 2:
+        sentences = description.split('.')
+        description = '. '.join(sentences[:2]) + '.'
+
     return description
 
 new_meta_titles = []
