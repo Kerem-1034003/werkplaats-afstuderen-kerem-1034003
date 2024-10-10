@@ -85,9 +85,9 @@ def generate_meta_title(subject, focus_keyword):
         f"Schrijf een SEO-geoptimaliseerde meta title voor een informatieve pagina over {subject}. "
         f"Het zoekwoord is '{focus_keyword}'. "
         "De title moet maximaal 60 karakters bevatten inclusief spaties, inclusief eventuele toevoegingen. "
-        "Ik verwacht 1 korte en krachtige titel van maximaal 60 karakter inclusief spaties. "
+        "Ik verwacht 1 korte en krachtige afgeronde titel van maximaal 60 karakter inclusief spaties."
         "Vermijd afgebroken zinnen en zorg ervoor dat het professioneel en aantrekkelijk is voor de lezer."
-        "verwijder dit soort tekens '%%title%%'."
+        "verwijder dit soort tekens '%%title%%','%%page%%', '%%sep%%'."
     )
     
     response = openai.ChatCompletion.create(
@@ -121,10 +121,10 @@ def generate_meta_description(subject, focus_keyword, existing_description):
         "De eerste zin moet de belangrijkste boodschap van de pagina duidelijk maken. "
         "De tweede zin moet een duidelijke call-to-action bevatten. "
         "Gebruik geen termen zoals 'vraag om een bod'. Vervang het met 'ontvang een bod'. "
-        "Gebruik geen termen zoals 'ontvang cash'. "
-        "verwijder dit soort tekens '%%title%%'."
-        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat inclusief spaties (dit zijn strikte regels) en ik wil geen afkappingen. "
-        "Maak het logisch, professioneel en aantrekkelijk voor de lezer. "
+        "Gebruik geen termen zoals 'ontvang cash'."
+        "verwijder dit soort tekens '%%title%%','%%page%%','%%sep%%' ."
+        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat inclusief spaties (dit zijn strikte regels) en ik wil geen afkappingen. het moet een afgerond beschrijving zijn "
+        "Maak het alogisch, professioneel en aantrekkelijk voor de lezer. "
         f"Hier is een bestaande meta description die je kan gebruiken voor logica: {existing_description}."
     )
     
