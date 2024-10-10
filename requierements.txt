@@ -1,3 +1,3 @@
-googletrans==4.0.0-rc1
-panda
-openai
+pandas==2.2.3
+openai==0.28.1
+python-dotenv==1.0.1
