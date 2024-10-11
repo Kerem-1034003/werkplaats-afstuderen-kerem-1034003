@@ -9,7 +9,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
 # Excel bestand inlezen
-df = pd.read_excel('excel/autoinkoop.xlsx')
+df = pd.read_excel('excel/autoinkoopp.xlsx')
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
 column_meta_description = '_yoast_wpseo_metadesc'
@@ -82,34 +82,27 @@ def rewrite_content(content):
 # Functie om nieuwe meta title te genereren
 def generate_meta_title(subject, focus_keyword):
     prompt = (
-        f"Schrijf een SEO-geoptimaliseerde meta title voor een informatieve pagina over {subject}. "
+        f"Schrijf een korte en krachtige SEO-geoptimaliseerde meta title voor een informatieve pagina over {subject}. "
         f"Het zoekwoord is '{focus_keyword}'. "
-        "De title moet maximaal 60 karakters bevatten inclusief spaties, inclusief eventuele toevoegingen. "
-        "Ik verwacht 1 korte en krachtige afgeronde titel van maximaal 60 karakter inclusief spaties."
-        "Vermijd afgebroken zinnen en zorg ervoor dat het professioneel en aantrekkelijk is voor de lezer."
-        "verwijder dit soort tekens '%%title%%','%%page%%', '%%sep%%'."
+        "De titel moet bestaan uit 5-6 woorden, en mag niet langer zijn dan 60 karakters inclusief spaties. "
+        "Zorg ervoor dat de titel niet wordt afgebroken en aantrekkelijk is voor de lezer. "
+        "Bijvoorbeeld: 'Snel uw auto verkopen | AutoInkoopService'. "
+        "Verwijder dit soort tekens '%%title%%', '%%sitename%%'."
     )
     
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=100,
+        max_tokens=60,
     )
     
     title = response['choices'][0]['message']['content'].strip()
 
-    # Voeg bedrijfsnaam toe als de titel minder dan 43 karakters is
+    # Voeg de bedrijfsnaam toe, als de titel minder dan 43 karakters is
     if len(title) < 43:
         full_title = f"{title} | {company_name}"
     else:
         full_title = title
-
-    # Controleer de lengte van de uiteindelijke titel
-    if len(full_title) > 60:
-        # Bereken het maximale aantal karakters voor de titel
-        max_title_length = 60 - len(f" | {company_name}")  # 60 - lengte van de bedrijfsnaam
-        title = title[:max_title_length].rsplit(' ', 1)[0]  # Knip de titel af op de laatste spatie
-        full_title = f"{title} | {company_name}"
 
     return full_title
 
@@ -121,10 +114,10 @@ def generate_meta_description(subject, focus_keyword, existing_description):
         "De eerste zin moet de belangrijkste boodschap van de pagina duidelijk maken. "
         "De tweede zin moet een duidelijke call-to-action bevatten. "
         "Gebruik geen termen zoals 'vraag om een bod'. Vervang het met 'ontvang een bod'. "
-        "Gebruik geen termen zoals 'ontvang cash'."
-        "verwijder dit soort tekens '%%title%%','%%page%%','%%sep%%' ."
-        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat inclusief spaties (dit zijn strikte regels) en ik wil geen afkappingen. het moet een afgerond beschrijving zijn "
-        "Maak het alogisch, professioneel en aantrekkelijk voor de lezer. "
+        "Gebruik geen termen zoals 'ontvang cash'. "
+        "verwijder dit soort tekens '%%title%%', '%%sitename%%'."
+        "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat inclusief spaties (dit zijn strikte regels) en ik wil geen afkappingen. "
+        "Maak het logisch, professioneel en aantrekkelijk voor de lezer. "
         f"Hier is een bestaande meta description die je kan gebruiken voor logica: {existing_description}."
     )
     
