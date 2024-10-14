@@ -9,7 +9,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
 # Excel bestand inlezen
-df = pd.read_excel('excel/autoinkoopp.xlsx')
+df = pd.read_excel('excel/autoinkoop.xlsx')
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
 column_meta_description = '_yoast_wpseo_metadesc'
@@ -35,7 +35,7 @@ def rewrite_content(content):
             # Als het aantal woorden meer dan 1500 is, splitsen we de tekst
             if word_count > 1000:
                 paragraphs = content.split("\n\n")
-                split_contents = split_text_by_paragraphs(content, max_paragraphs=6)  # 6 alinea's per deel
+                split_contents = split_text_by_paragraphs(content, max_paragraphs=8)  # 8 alinea's per deel
             else:
                 split_contents = [content]  # Geen splitsing nodig voor kortere teksten
 
@@ -98,6 +98,8 @@ def generate_meta_title(subject, focus_keyword):
     
     title = response['choices'][0]['message']['content'].strip()
 
+    title = title.replace('"', '').replace("'", "")
+
     # Voeg de bedrijfsnaam toe, als de titel minder dan 43 karakters is
     if len(title) < 43:
         full_title = f"{title} | {company_name}"
@@ -128,6 +130,8 @@ def generate_meta_description(subject, focus_keyword, existing_description):
     )
     
     description = response['choices'][0]['message']['content'].strip()
+
+    description = description.replace('"', '').replace("'", "")
 
     # Check of de description meer dan 150 karakters is
     if len(description) > 150:
@@ -165,6 +169,6 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-df.to_excel('excel/herschreven_compleet.xlsx', index=False)
+df.to_excel('herschreven_excel/herschreven_autoinkoop.xlsx', index=False)
 
 print("De content, meta titles en descriptions zijn herschreven en opgeslagen.")
