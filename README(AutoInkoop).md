@@ -80,7 +80,7 @@ De herschreven content, meta titles en descriptions worden opgeslagen in een nie
 ## Versie
 
 - Versie 1.0
-- Release date: 10-10-2023
+- Release date: -
 
 ## Bugs
 
