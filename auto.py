@@ -117,12 +117,12 @@ def generate_meta_description(subject, focus_keyword, existing_description):
         "De tweede zin moet een duidelijke call-to-action bevatten. "
         "Gebruik geen termen zoals 'vraag om een bod'. Vervang het met 'ontvang een bod'. "
         "Gebruik geen termen zoals 'ontvang cash'. "
-        "verwijder dit soort tekens '%%title%%', '%%sitename%%'."
+        "Verwijder dit soort tekens '%%title%%', '%%sitename%%'. "
         "Zorg ervoor dat de beschrijving maximaal 150 karakters bevat inclusief spaties (dit zijn strikte regels) en ik wil geen afkappingen. "
         "Maak het logisch, professioneel en aantrekkelijk voor de lezer. "
         f"Hier is een bestaande meta description die je kan gebruiken voor logica: {existing_description}."
     )
-    
+
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
@@ -131,17 +131,28 @@ def generate_meta_description(subject, focus_keyword, existing_description):
     
     description = response['choices'][0]['message']['content'].strip()
 
+    # Verwijder ongewenste tekens
     description = description.replace('"', '').replace("'", "")
 
-    # Check of de description meer dan 150 karakters is
-    if len(description) > 150:
-        # Fallback: inkorten van de description om de limiet te respecteren
-        description = description[:147].rsplit(' ', 1)[0] + '...'
+    # Opsplitsen in zinnen
+    sentences = description.split('. ')
     
-    # Check of het aantal zinnen meer dan 2 is
-    if description.count('.') > 2:
-        sentences = description.split('.')
+    # Houd maximaal twee zinnen
+    if len(sentences) > 2:
         description = '. '.join(sentences[:2]) + '.'
+
+    # Check of de lengte meer dan 150 karakters is
+    if len(description) > 150:
+        # Knip de tekst af na de laatste volledige zin binnen de limiet
+        shortened_description = ''
+        for sentence in sentences:
+            if len(shortened_description) + len(sentence) + 1 <= 150:  # +1 voor de punt
+                shortened_description += sentence + '. '
+            else:
+                break
+        
+        # Verwijder de laatste spatie en punt als de lengte te kort is
+        description = shortened_description.strip()
 
     return description
 
