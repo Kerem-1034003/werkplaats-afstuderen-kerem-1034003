@@ -9,7 +9,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
 # Excel bestand inlezen
-df = pd.read_excel('excel/autoinkoop.xlsx')
+df = pd.read_excel('excel/Autoinkoop1.xlsx')
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
 column_meta_description = '_yoast_wpseo_metadesc'
@@ -35,7 +35,7 @@ def rewrite_content(content):
             # Als het aantal woorden meer dan 1500 is, splitsen we de tekst
             if word_count > 1000:
                 paragraphs = content.split("\n\n")
-                split_contents = split_text_by_paragraphs(content, max_paragraphs=8)  # 8 alinea's per deel
+                split_contents = split_text_by_paragraphs(content, max_paragraphs=10)  # 10 alinea's per deel
             else:
                 split_contents = [content]  # Geen splitsing nodig voor kortere teksten
 
@@ -87,7 +87,7 @@ def generate_meta_title(subject, focus_keyword):
         "De titel moet bestaan uit 5-6 woorden, en mag niet langer zijn dan 60 karakters inclusief spaties. "
         "Zorg ervoor dat de titel niet wordt afgebroken en aantrekkelijk is voor de lezer. "
         "Bijvoorbeeld: 'Snel uw auto verkopen | AutoInkoopService'. "
-        "Verwijder dit soort tekens '%%title%%', '%%sitename%%'."
+        "Verwijder dit soort tekens '%%title%%', '%%sitename%%', '%%page%%', '%%sep%%'."
     )
     
     response = openai.ChatCompletion.create(
