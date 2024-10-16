@@ -9,7 +9,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
 # Excel bestand inlezen
-df = pd.read_excel('excel/Autoinkoop1.xlsx')
+df = pd.read_excel('excel/autoinkooppp.xlsx')
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
 column_meta_description = '_yoast_wpseo_metadesc'
@@ -76,6 +76,32 @@ def rewrite_content(content):
         
         except Exception as e:
             print(f"Error rewriting content: {e}")
+            return content  # Retourneer originele tekst bij een fout
+    return content
+
+# Nieuwe functie om content aan te vullen tot minimaal 500 woorden
+def fill_content(content):
+    if pd.notnull(content):
+        try:
+            while len(content.split()) < 500:
+                prompt = (
+                    "Geef een aanvulling op de volgende tekst zodat deze minimaal 500 woorden bevat. "
+                    "Zorg ervoor dat de aanvulling logisch en relevant is voor de inhoud:"
+                    f"\n\n{content}"
+                )
+
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=4096,
+                )
+                additional_text = response['choices'][0]['message']['content']
+                content += " " + additional_text.strip()
+
+            return content
+
+        except Exception as e:
+            print(f"Error filling content: {e}")
             return content  # Retourneer originele tekst bij een fout
     return content
 
@@ -162,7 +188,11 @@ new_meta_descriptions = []
 for idx, row in df.iterrows():
     # Herschrijf de content
     original_content = row[column_content]
-    df.at[idx, column_content] = rewrite_content(original_content)
+    rewritten_content = rewrite_content(original_content)
+    
+    # Vul de content aan als het minder dan 500 woorden is
+    filled_content = fill_content(rewritten_content)
+    df.at[idx, column_content] = filled_content
 
     # Genereer nieuwe meta title en description
     subject = row[column_meta_title] if pd.notnull(row[column_meta_title]) else "Geen onderwerp"
