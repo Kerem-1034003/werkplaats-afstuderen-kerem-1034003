@@ -9,7 +9,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 
 openai.api_key = openai_api_key
 
-df = pd.read_excel('excel/kinderschommels.xlsx')
+df = pd.read_excel('excel/simpledeal/kinderschommels.xlsx')
 columns_low_temp = ['Material','Category', 'Color']
 columns_high_temp = ['Name','Description','Bullet Points']
 
@@ -134,6 +134,6 @@ if 'Bullet Points' in df.columns:
     df['Bullet Points'] = df['Bullet Points'].apply(improve_bullet_points)
 
 # Opslaan naar een nieuw bestand
-df.to_excel('improved_data.xlsx', index=False)
+df.to_excel('herschreven_excel/simpledeal/improved_data.xlsx', index=False)
 
 print ("Het bestand is vertaald en juist beschreven")
