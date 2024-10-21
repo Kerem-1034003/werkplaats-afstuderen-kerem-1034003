@@ -20,7 +20,8 @@ company_name = "BnB Living"
 # Functie om een focus keyword te genereren op basis van de slug
 def generate_focus_keyword(slug):
     prompt = (
-        f"Op basis van de slug '{slug}', genereer een relevant focus keyword. Houd het keyword kort, specifiek en SEO-geoptimaliseerd."
+        f"Op basis van de slug '{slug}', genereer een relevant focus keyword dat kort, specifiek en SEO-geoptimaliseerd is. "
+        "Houd bij het genereren van het keyword rekening met de zoekintentie van de gebruiker en gebruik indien mogelijk semantische zoekwoorden of gerelateerde termen om de context te versterken."
     )
     
     response = openai.ChatCompletion.create(
@@ -30,16 +31,20 @@ def generate_focus_keyword(slug):
     )
     
     focus_keyword = response['choices'][0]['message']['content'].strip()
+
+    focus_keyword = focus_keyword.replace('"', '').replace("'", "")
+
     return focus_keyword
 
 # Functie om een SEO-titel te genereren op basis van het focus keyword
 def generate_seo_title(focus_keyword):
     prompt = (
-        f"Schrijf een korte en krachtige SEO-geoptimaliseerde meta title met het focus keyword '{focus_keyword}'. "
-        f"Het zoekwoord is '{focus_keyword}'. "
-        "De titel moet bestaan uit 5-6 woorden en mag niet langer zijn dan 60 karakters inclusief spaties. "
-        "Zorg ervoor dat de titel niet wordt afgebroken en aantrekkelijk is voor de lezer. "
+        f"Schrijf een krachtige, korte SEO-geoptimaliseerde meta title met het focus keyword '{focus_keyword}'. "
+        "De titel moet aantrekkelijk zijn en binnen 5-6 woorden passen, zonder langer te zijn dan 60 karakters inclusief spaties. "
+        "Zorg ervoor dat de titel goed aansluit op de zoekintentie van de gebruiker en dat deze niet wordt afgebroken. "
+        "Houd het professioneel, pakkend en relevant voor de content van de pagina."
     )
+
     
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -62,11 +67,10 @@ def generate_seo_title(focus_keyword):
 # Functie om een SEO-beschrijving te genereren op basis van het focus keyword
 def generate_seo_description(focus_keyword):
     prompt = (
-        f"Schrijf een korte SEO-geoptimaliseerde meta description met het focus keyword '{focus_keyword}'. "
-        "De beschrijving moet bestaan uit maximaal 2 zinnen, waarin de eerste zin de belangrijkste boodschap van de pagina samenvat, "
-        "en de tweede zin een duidelijke call-to-action bevat."
-        "De beschrijving mag niet langer zijn dan 150 karakters inclusief spaties."
-        "Maak het logisch, professioneel en aantrekkelijk voor de lezer. "
+        f"Schrijf een SEO-geoptimaliseerde meta description die volledig aansluit bij de zoekintentie van de gebruiker voor het focus keyword '{focus_keyword}'. "
+        "De beschrijving moet kort en krachtig zijn, bestaan uit maximaal 2 zinnen, waarin de eerste zin de belangrijkste boodschap van de pagina helder samenvat, "
+        "en de tweede zin een duidelijke call-to-action bevat die aansluit op de content. Gebruik waar mogelijk semantische varianten van het focus keyword voor context. "
+        "De beschrijving mag niet langer zijn dan 150 karakters inclusief spaties. Zorg ervoor dat de beschrijving logisch, professioneel en aantrekkelijk is voor de lezer."
     )
     
     response = openai.ChatCompletion.create(
