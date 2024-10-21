@@ -15,7 +15,7 @@ column_seo_title = 'seo_title'
 column_seo_description = 'seo_description'
 column_focus_keyword = 'focus_keyword'
 
-company_name = "BnB Living"
+company_name = "Bkn Living"
 
 # Functie om een focus keyword te genereren op basis van de slug
 def generate_focus_keyword(slug):
