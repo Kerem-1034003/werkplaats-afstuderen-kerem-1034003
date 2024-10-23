@@ -119,5 +119,9 @@ for idx, row in df.iterrows():
     new_title = rewrite_product_title(row[column_post_title], new_focus_keyword)
     df.at[idx, column_post_title] = new_title
 
+    # Herschrijf de productbeschrijving
+    new_content = rewrite_product_content(row[column_post_content], new_focus_keyword)
+    df.at[idx, column_post_content] = new_content
+
 # Opslaan in hetzelfde bestand of een nieuw bestand als je dat wilt controleren
 df.to_excel('herschreven_excel/bkn-living/updated_bnk-living.xlsx', index=False)
