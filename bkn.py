@@ -82,6 +82,27 @@ def rewrite_product_title(post_title, focus_keyword):
         print(f"Error rewriting product title: {e}")
         return post_title  # Geef het originele titel terug bij een fout
 
+def rewrite_product_content(post_content, focus_keyword):
+    try:
+        prompt = f"""
+        Schrijf een productbeschrijving van minimaal 250 woorden die het focus keyword '{focus_keyword}' 2-3 keer op een natuurlijke manier opneemt. 
+        Beschrijf de belangrijkste functies, voordelen en unieke kenmerken van het product in een menselijke toon en voeg indien relevant specificaties toe.
+        Het originele product heeft de beschrijving: '{post_content}'.
+        """
+        
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600  # Houd de response kort en bondig
+        )
+        
+        new_content = response['choices'][0]['message']['content'].strip()
+        return new_content.replace('"', '').replace("'", "")  # Verwijder ongewenste aanhalingstekens
+
+    except Exception as e:
+        print(f"Error rewriting product content: {e}")
+        return post_content  # Geef de originele beschrijving terug bij een fout
+
 # Loop door de DataFrame en verbeter of genereer de focus keyword
 for idx, row in df.iterrows():
 
