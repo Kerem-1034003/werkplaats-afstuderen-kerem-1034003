@@ -208,10 +208,11 @@ def copy_ean_to_global_unique_id(df, ean_column='meta:_alg_ean', global_unique_i
     return df
 
 # Functie om alt-tekst aan de eerste afbeelding in de kolom 'images' toe te voegen
-def add_alt_text_to_images(df, images_column='images', title_column='post_title', focus_keyword_column='meta:rank_math_focus_keyword', meta_title_column='meta:rank_math_title'):
+def add_alt_text_to_images(df, images_column='images', focus_keyword_column='meta:rank_math_focus_keyword'):
     """
-    Voeg een AI-gegenereerde alt-tekst toe aan alleen de eerste afbeelding in de lijst van afbeeldingen in de kolom 'images'.
-    De AI gebruikt 'post_title', 'focus_keyword' en 'meta_title' als inspiratie voor de alt-tekst.
+    Vervang de bestaande alt-tekst door een AI-gegenereerde alt-tekst 
+    voor alleen de eerste afbeelding in de lijst van afbeeldingen in de kolom 'images'.
+    De AI gebruikt 'focus_keyword' als inspiratie voor de alt-tekst.
     """
     for idx, row in df.iterrows():
         if pd.notna(row[images_column]):
@@ -219,32 +220,38 @@ def add_alt_text_to_images(df, images_column='images', title_column='post_title'
             if images:
                 # Stel de prompt samen met beschikbare kolomwaarden
                 prompt = f"""
-                Genereer een korte en beschrijvende alt-tekst van ongeveer 30 karakters voor een productafbeelding.
-                Gebruik één van deze referenties: post_title: '{row[title_column]}', 
-                focus_keyword: '{row[focus_keyword_column]}', of meta_title: '{row[meta_title_column]}'.
+                Genereer een korte en beschrijvende alt-tekst van ongeveer 100 karakters voor een productafbeelding.
+                Gebruik het volgende focus keyword: '{row[focus_keyword_column]}'.
                 Houd de beschrijving relevant en helder, en in correct Nederlands.
                 """
-                
+
                 try:
                     # Vraag OpenAI om een alt-tekst te genereren
                     response = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "user", "content": prompt}],
-                        max_tokens=15  # Houd de response kort en bondig
+                        max_tokens=100  # Houd de response kort en bondig
                     )
-                    
+
                     # Ontvang en verwerk de gegenereerde alt-tekst
                     alt_text = response['choices'][0]['message']['content'].strip()
                     
-                    # Voeg de alt-tekst toe aan alleen de eerste afbeelding
-                    images[0] += f" ! alt : {alt_text}"
-                
+                    # Zoek naar de bestaande alt-tekst en vervang deze
+                    parts = images[0].split(' ! ')
+                    new_parts = []
+                    for part in parts:
+                        if part.startswith('alt :'):
+                            new_parts.append(f"alt : {alt_text}")  # Vervang de alt-tekst
+                        else:
+                            new_parts.append(part)
+                    images[0] = ' ! '.join(new_parts)  # Werk de eerste afbeelding bij
+
                 except Exception as e:
                     print(f"Error generating alt text for row {idx}: {e}")
-                
+
                 # Zet de lijst met afbeeldingen weer samen in de oorspronkelijke kolomindeling
                 df.at[idx, images_column] = ' | '.join(images)
-                
+
     return df
 
 # Loop door de DataFrame en verbeter of genereer
