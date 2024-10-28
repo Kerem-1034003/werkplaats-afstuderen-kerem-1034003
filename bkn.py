@@ -8,7 +8,7 @@ load_dotenv()
 openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
 
-df = pd.read_excel('excel/bkn-living/bknliving.xlsx')
+df = pd.read_excel('excel/bkn-living/bknliving10.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -207,6 +207,46 @@ def copy_ean_to_global_unique_id(df, ean_column='meta:_alg_ean', global_unique_i
             df.at[idx, global_unique_id_column] = ean_value  # Kopieer de waarde naar 'meta:_global_unique_id'
     return df
 
+# Functie om alt-tekst aan de eerste afbeelding in de kolom 'images' toe te voegen
+def add_alt_text_to_images(df, images_column='images', title_column='post_title', focus_keyword_column='meta:rank_math_focus_keyword', meta_title_column='meta:rank_math_title'):
+    """
+    Voeg een AI-gegenereerde alt-tekst toe aan alleen de eerste afbeelding in de lijst van afbeeldingen in de kolom 'images'.
+    De AI gebruikt 'post_title', 'focus_keyword' en 'meta_title' als inspiratie voor de alt-tekst.
+    """
+    for idx, row in df.iterrows():
+        if pd.notna(row[images_column]):
+            images = row[images_column].split(' | ')  # Splits de afbeeldingen in de lijst
+            if images:
+                # Stel de prompt samen met beschikbare kolomwaarden
+                prompt = f"""
+                Genereer een korte en beschrijvende alt-tekst van ongeveer 30 karakters voor een productafbeelding.
+                Gebruik één van deze referenties: post_title: '{row[title_column]}', 
+                focus_keyword: '{row[focus_keyword_column]}', of meta_title: '{row[meta_title_column]}'.
+                Houd de beschrijving relevant en helder, en in correct Nederlands.
+                """
+                
+                try:
+                    # Vraag OpenAI om een alt-tekst te genereren
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=15  # Houd de response kort en bondig
+                    )
+                    
+                    # Ontvang en verwerk de gegenereerde alt-tekst
+                    alt_text = response['choices'][0]['message']['content'].strip()
+                    
+                    # Voeg de alt-tekst toe aan alleen de eerste afbeelding
+                    images[0] += f" ! alt : {alt_text}"
+                
+                except Exception as e:
+                    print(f"Error generating alt text for row {idx}: {e}")
+                
+                # Zet de lijst met afbeeldingen weer samen in de oorspronkelijke kolomindeling
+                df.at[idx, images_column] = ' | '.join(images)
+                
+    return df
+
 # Loop door de DataFrame en verbeter of genereer
 for idx, row in df.iterrows():
     # Focus keyword
@@ -241,6 +281,9 @@ for idx, row in df.iterrows():
 
 # Kopieer de EAN naar Global Unique ID
 df = copy_ean_to_global_unique_id(df)
+
+# Voeg de alt-tekst toe aan afbeeldingen
+df = add_alt_text_to_images(df)
 
 # Opslaan in hetzelfde bestand of een nieuw bestand als je dat wilt controleren
 df.to_excel('herschreven_excel/bkn-living/updated_bkn-living.xlsx', index=False)
