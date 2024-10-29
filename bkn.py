@@ -5,10 +5,10 @@ import openai
 
 # OpenAI API key laden
 load_dotenv()
-openai_api_key = os.getenv('OPENAI_API_KEY')
-openai.api_key = openai_api_key
+openai_api_key_bkn_living = os.getenv('OPENAI_API_KEY2')
+openai.api_key = openai_api_key_bkn_living
 
-df = pd.read_excel('excel/bkn-living/bknliving10.xlsx')
+df = pd.read_excel('excel/bkn-living/bknliving.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -27,16 +27,16 @@ def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None):
         # Bepaal het prompt op basis van of er al een focus keyword is
         if isinstance(current_focus_keyword, str) and len(current_focus_keyword.strip()) > 0:
             prompt = f"""
-            Verbeter het volgende focus keyword en houd het binnen 60 karakters, inclusief spaties:'{current_focus_keyword}'.
-            Zorg dat het keyword is gebaseerd op het producttype, merk, en unieke specificaties zoals kleur of materiaal.
+            Verbeter het volgende focus keyword en houd het binnen 4-5 woorden, inclusief spaties:'{current_focus_keyword}'.
+            Zorg dat het keyword is gebaseerd op het producttype, kleur of materiaal.
             Het product heeft de zoekwoord: '{post_title}'.
             Dit keyword zal worden gebruikt voor SEO, dus zorg dat het professioneel is en geschikt voor titels en beschrijvingen.
             Zorg ervoor dat de keyword in correct Nederlands is geschreven. dus géén Vlaamse woorden.
             """
         else:
             prompt = f"""
-            Bepaal een nieuw SEO focus keyword voor het volgende product op basis van het producttype, merk en unieke specificaties zoals kleur of materiaal.
-            Zorg dat het keyword niet langer is dan 60 karakters, inclusief spaties.
+            Bepaal een nieuw SEO focus keyword voor het volgende product op basis van het producttype, kleur of materiaal.
+            Zorg dat het keyword niet langer is dan 5 woorden.
             haal het focus keyword idee uit de kolom: '{post_title}'.
             Zorg ervoor dat het keyword professioneel is en geschikt voor titels en beschrijvingen.
             Zorg ervoor dat de keyword in correct Nederlands is geschreven. dus géén Vlaamse woorden.
@@ -170,6 +170,10 @@ def generate_meta_description(post_title, focus_keyword, current_meta_descriptio
 
         # Verwijder ongewenste aanhalingstekens
         meta_description = meta_description.replace('"', '').replace("'", "")
+
+        # Controleer of de meta description leeg is
+        if not meta_description:
+            meta_description = f"Product beschrijving van {post_title} met focus op {focus_keyword}."
 
         # Opsplitsen in zinnen en houd maximaal twee zinnen
         sentences = meta_description.split('. ')
