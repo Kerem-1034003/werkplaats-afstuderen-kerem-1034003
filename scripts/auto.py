@@ -10,7 +10,7 @@ openai.api_key = openai_api_key
 
 # Excel bestand inlezen
 
-df = pd.read_excel('excel/autoinkoop/autoinkoop_split_final_1.xlsx')
+df = pd.read_excel('excel/autoinkoop/autoinkoop_split_final_4.xlsx')
 
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
@@ -212,6 +212,6 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-df.to_excel('herschreven_excel/autoinkoop/herschreven_autoinkoop_split_final_1.xlsx', index=False)
+df.to_excel('herschreven_excel/autoinkoop/herschreven_autoinkoop_split_final_4.xlsx', index=False)
 
 print("De content, meta titles en descriptions zijn herschreven en opgeslagen.")
