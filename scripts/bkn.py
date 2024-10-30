@@ -70,7 +70,7 @@ def rewrite_product_title(post_title, focus_keyword):
     try:
         prompt = f"""
         Schrijf een producttitel van maximaal 60 karakters inclusief spaties, beginnend met het focus keyword '{focus_keyword}',
-        gevolgd door een power.
+        gevolgd door een powerword.
         Het originele product heeft de naam: '{post_title}'.
         Zorg ervoor dat de titel in correct Nederlands is geschreven. dus géén Vlaamse woorden.
         """
