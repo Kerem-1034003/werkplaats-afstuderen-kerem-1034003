@@ -8,7 +8,7 @@ load_dotenv()
 openai_api_key_bkn_living = os.getenv('OPENAI_API_KEY2')
 openai.api_key = openai_api_key_bkn_living
 
-df = pd.read_excel('excel/bkn-living/bknliving10.xlsx')
+df = pd.read_excel('excel/bkn-living/bknliving.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -29,7 +29,7 @@ def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None):
         if isinstance(current_focus_keyword, str) and len(current_focus_keyword.strip()) > 0:
             prompt = f"""
             Herschrijf een seo geoptimaliseerde focus keyword '{current_focus_keyword}' van maximaal 1 woord
-            Haal het meest logisch idee uit de kolom'{post_title}' voor het genereren van de focus keyword.
+            Haal het meest logisch idee uit de kolom'{post_title}' dat specifiek is over het product, voor het genereren van de focus keyword .
             Voorbeelden: Tuinstoel, Draadtafel, Salontafel, Vitrinekast enz. 
             Genereer een logische keyword.
             Dit keyword zal worden gebruikt voor SEO, dus zorg dat het professioneel is en geschikt voor titels en beschrijvingen.
@@ -112,8 +112,7 @@ def rewrite_product_content(post_content, focus_keyword):
 
 def generate_meta_title(focus_keyword):
     prompt = (
-        f"Schrijf een SEO-geoptimaliseerde meta title beginnend met het focus keyword '{focus_keyword}', en gevolgd door een powerword."
-        f"meta title mag maximaal 50 tekens inclusief spaties bevatten, LET HIEROP!."
+        f"Schrijf een SEO-geoptimaliseerde meta title van maximaal 50 tekens lang inclusief spaties, beginnend met het focus keyword '{focus_keyword}', en gevolgd door een powerword."
         "Zorg ervoor dat de titel niet wordt afgebroken en aantrekkelijk is voor de lezer."
         "verwijde dit soort tekens '%%title%%', '%%sitename%%', '%%page%%','%%sep%%'."
         "Zorg ervoor dat de meta title in correct Nederlands is geschreven. dus géén Vlaamse woorden."
@@ -141,20 +140,20 @@ def generate_meta_description(post_title, focus_keyword, current_meta_descriptio
         # Bepaal het prompt op basis van of er al een meta description is
         if isinstance(current_meta_description, str) and len(current_meta_description.strip()) > 0:
             prompt = f"""
-            Schrijf een aantrekkelijke SEO geoptimaliseerd meta description van maximaal 150 tekens inclusief spaties die het focus keyword '{focus_keyword}' bevat.
+            Schrijf een aantrekkelijke SEO geoptimaliseerd meta description van maximaal 150 tekens lang inclusief spaties, beginnend met het focus keyword '{focus_keyword}'.
             Zorg voor een unieke en originele openingszin die de lezer nieuwsgierig maakt. Vermijd het gebruik van standaardopeningen zoals "Ontdek" en "Verken".
             De description moet de belangrijkste functies, voordelen en unieke kenmerken van het product behouden.
-            Het focus keyword is '{focus_keyword}' en het product heeft de titel '{post_title}'.
+            Het focus keyword is '{focus_keyword}'.
             Zorg ervoor dat de meta beschrijving in correct Nederlands is geschreven.
             """
         else:
             prompt = f"""
-             Schrijf een aantrekkelijke SEO geoptimaliseerd meta description van maximaal 150 tekens inclusief spaties die het focus keyword '{focus_keyword}' bevat.
-            Het focus keyword is '{focus_keyword}' en het product heeft de titel '{post_title}'.
+            Schrijf een aantrekkelijke SEO geoptimaliseerd meta description van maximaal 150 tekens lang inclusief spaties, beginnend met het focus keyword '{focus_keyword}'.
+            Het focus keyword is '{focus_keyword}'.
             Creëer een originele openingszin die de aandacht trekt en vermijd standaardopeningen zoals "Ontdek" en "Verken".
             Beschrijf de belangrijkste functies en voordelen van het product in een menselijke toon.
             Ik wil maximaal 2 zinnen in de description:
-            - De eerste zin moet de belangrijkste boodschap van het product duidelijk maken.
+            - De eerste zin moet de belangrijkste boodschap van het product duidelijk maken beginnend met het focus keyword'{focus_keyword}'.
             - De tweede zin moet een duidelijke call-to-action bevatten.
             Zorg ervoor dat de meta beschrijving in correct Nederlands is geschreven.
             """
@@ -326,4 +325,4 @@ for idx, row in df.iterrows():
     df = add_alt_text_to_images(df)
 
 # Opslaan in hetzelfde bestand of een nieuw bestand als je dat wilt controleren
-df.to_excel('herschreven_excel/bkn-living/updated_bkn-living1.1.xlsx', index=False)
+df.to_excel('herschreven_excel/bkn-living/updated_bkn-living1.xlsx', index=False)
