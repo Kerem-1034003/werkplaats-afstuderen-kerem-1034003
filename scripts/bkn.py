@@ -325,4 +325,4 @@ for idx, row in df.iterrows():
     df = add_alt_text_to_images(df)
 
 # Opslaan in hetzelfde bestand of een nieuw bestand als je dat wilt controleren
-df.to_excel('herschreven_excel/bkn-living/updated_bkn-living1.xlsx', index=False)
+df.to_excel('herschreven_excel/bkn-living/updated_bkn-living1.0.xlsx', index=False)

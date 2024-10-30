@@ -11,7 +11,7 @@ openai.api_key = openai_api_key
 company_name = "Simpledeal"
 
 # Lees de Simpledeal Excel-bestand
-df = pd.read_excel('excel/simpledeal/simpledeal-cat10.xlsx')
+df = pd.read_excel('excel/simpledeal/simpledeal-cat.xlsx')
 
 # Zorg dat de `meta:_yoast_data` kolom tekst kan opslaan
 df['meta:_yoast_data'] = df['meta:_yoast_data'].astype(str)
