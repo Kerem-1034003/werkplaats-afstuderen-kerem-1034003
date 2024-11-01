@@ -325,3 +325,4 @@ for idx, row in df.iterrows():
 
 # Opslaan in hetzelfde bestand of een nieuw bestand als je dat wilt controleren
 df.to_excel('herschreven_excel/bkn-living/updated_bkn-living1.0.xlsx', index=False)
+print("Verwerking voltooid en opgeslagen")
