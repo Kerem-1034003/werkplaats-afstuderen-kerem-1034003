@@ -317,7 +317,6 @@ for idx, row in df.iterrows():
     new_post_name = rewrite_post_name(new_focus_keyword, row[column_post_name])
     df.at[idx, column_post_name] = new_post_name
 
-
     # Kopieer de EAN naar Global Unique ID
     df = copy_ean_to_global_unique_id(df)
 
