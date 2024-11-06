@@ -23,25 +23,24 @@ column_focus_keyword = 'meta:rank_math_focus_keyword'
 company_name = "Bkn Living"
 
 # Functie voor het genereren of verbeteren van het focus keyword
+# Functie voor het genereren of verbeteren van het focus keyword
 def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None):
     try:
         if current_focus_keyword:
             prompt = f"""
-            Herschrijf een seo geoptimaliseerde focus keyword '{current_focus_keyword}' van maximaal 1 woord
-            Haal het meest logisch idee uit de kolom'{current_focus_keyword}' dat specifiek is over het product, voor het genereren van de focus keyword .
-            Voorbeelden: Tuinstoel, Draadtafel, Salontafel, Vitrinekast enz. 
-            Genereer een logische keyword.
-            Dit keyword zal worden gebruikt voor SEO, dus zorg dat het professioneel is en geschikt voor titels en beschrijvingen.
-            Zorg ervoor dat de keyword in correct Nederlands is geschreven. dus géén Vlaamse woorden.
+            Herschrijf het SEO-geoptimaliseerde focus keyword '{current_focus_keyword}' naar een nieuw focus keyword van maximaal 1 woord.
+            Het nieuwe keyword moet het meest relevante en specifieke woord zijn dat het product beschrijft, afgeleid van de titel '{post_title}'.
+            Focus op productcategorieën en vermijd synoniemen of algemene termen die niet precies zijn. 
+            Voorbeelden van goede keywords zijn 'draadtafel', 'vitrinekast', 'tuinstoel'.
+            Zorg ervoor dat het keyword in correct Nederlands is geschreven, dus géén Vlaamse woorden.
             """
         else:
             prompt = f"""
             Bepaal een nieuw SEO focus keyword van maximaal 1 woord.
-            Haal het meest logisch idee uit de kolom: '{post_title}'dat specifiek is over het product, voor het genereren van de focus keyword.
-            Voorbeelden: Tuinstoel, Draadtafel, Salontafel, Vitrinekast enz. 
-            Genereer een logische keyword.
-            Zorg ervoor dat het keyword professioneel is en geschikt voor titels en beschrijvingen.
-            Zorg ervoor dat de keyword in correct Nederlands is geschreven. dus géén Vlaamse woorden.
+            Het keyword moet het meest relevante en specifieke woord zijn dat het product beschrijft, afgeleid van de producttitel: '{post_title}'.
+            Gebruik sleutelwoorden die typisch zijn voor het product en vermijd algemene of onduidelijke termen. 
+            Denk aan voorbeelden: 'draadtafel', 'salontafel', 'vitrinekast'.
+            Zorg ervoor dat het keyword professioneel is en geschikt voor titels en beschrijvingen, en in correct Nederlands is geschreven.
             """
         
         response = client.chat.completions.create(
@@ -56,6 +55,7 @@ def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None):
     except Exception as e:
         print(f"Error generating focus keyword: {e}")
         return current_focus_keyword or post_title
+
 
 # Functie voor het herschrijven van de producttitel
 def rewrite_product_title(post_title, focus_keyword):
@@ -160,6 +160,13 @@ def generate_meta_description(post_title, focus_keyword, current_meta_descriptio
         )
 
         meta_description = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+        
+        # Opsplitsen in zinnen
+        sentences = meta_description.split('. ')
+
+        # Houd maximaal twee zinnen
+        if len(sentences) > 2:
+            meta_description = '. '.join(sentences[:2]) + '.'
 
         # Limiteer tot 150 tekens
         if len(meta_description) > 150:
