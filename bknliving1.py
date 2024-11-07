@@ -23,21 +23,20 @@ column_focus_keyword = 'meta:rank_math_focus_keyword'
 company_name = "Bkn Living"
 
 # Functie voor het genereren of verbeteren van het focus keyword
-# Functie voor het genereren of verbeteren van het focus keyword
-def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None):
+def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None, used_keywords=set()):
     try:
         if current_focus_keyword:
             prompt = f"""
-            Herschrijf het SEO-geoptimaliseerde focus keyword '{current_focus_keyword}' naar een nieuw focus keyword van maximaal 1 woord.
-            Het nieuwe keyword moet het meest relevante en specifieke woord zijn dat het product beschrijft, afgeleid van de titel '{post_title}'.
+            Herschrijf het SEO-geoptimaliseerde focus keyword '{current_focus_keyword}' naar een nieuw focus keyword van maximaal 1 woord. Gebruik alleen 2 woorden waar nodig en let dan op spaties.
+            Vermijd reeds gebruikte keywords en zorg voor variatie. Gebruik het meest specifieke en relevante woord dat het product in de titel '{post_title}' beschrijft.
             Focus op productcategorieën en vermijd synoniemen of algemene termen die niet precies zijn. 
             Voorbeelden van goede keywords zijn 'draadtafel', 'vitrinekast', 'tuinstoel'.
-            Zorg ervoor dat het keyword in correct Nederlands is geschreven, dus géén Vlaamse woorden.
+            Zorg ervoor dat het keyword in correct Nederlands is geschreven, dus géén Vlaamse woorden.          
             """
         else:
             prompt = f"""
-            Bepaal een nieuw SEO focus keyword van maximaal 1 woord.
-            Het keyword moet het meest relevante en specifieke woord zijn dat het product beschrijft, afgeleid van de producttitel: '{post_title}'.
+            Bepaal een nieuw SEO focus keyword van maximaal 1 woord. Gebruik alleen 2 woorden waar nodig en let dan op spaties.
+            Vermijd reeds gebruikte keywords en zorg voor variatie. Gebruik het meest specifieke en relevante woord dat het product in de titel '{post_title}' beschrijft.
             Gebruik sleutelwoorden die typisch zijn voor het product en vermijd algemene of onduidelijke termen. 
             Denk aan voorbeelden: 'draadtafel', 'salontafel', 'vitrinekast'.
             Zorg ervoor dat het keyword professioneel is en geschikt voor titels en beschrijvingen, en in correct Nederlands is geschreven.
@@ -51,7 +50,14 @@ def improve_or_generate_focus_keyword(post_title, current_focus_keyword=None):
         
         # Haal de gegenereerde content op en verwijder aanhalingstekens
         focus_keyword = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
-        return focus_keyword
+
+        # Controleer of het keyword al in gebruik is
+        if focus_keyword not in used_keywords:
+            used_keywords.add(focus_keyword)
+            return focus_keyword
+        else:
+            print("Focus keyword is al gebruikt. Probeer een nieuwe variatie.")
+            return improve_or_generate_focus_keyword(post_title, None, used_keywords)
     except Exception as e:
         print(f"Error generating focus keyword: {e}")
         return current_focus_keyword or post_title
@@ -83,16 +89,15 @@ def rewrite_product_title(post_title, focus_keyword):
 def rewrite_product_content(post_content, focus_keyword):
     try:
         prompt = f"""
-        Schrijf een productbeschrijving van minimaal 250 woorden die het focus keyword '{focus_keyword}' 2-3 keer op een natuurlijke manier opneemt. 
-        Beschrijf de belangrijkste functies, voordelen en unieke kenmerken van het product in een menselijke toon en voeg indien relevant specificaties toe.
+        Schrijf een productbeschrijving van minimaal 300 woorden in HTML-formaat voor het product met focus keyword '{focus_keyword}'. 
+        Gebruik het focus keyword 2-3 keer op natuurlijke wijze. Beschrijf de belangrijkste functies, voordelen en specificaties in korte paragrafen van 3-4 zinnen per paragraaf.
         Het originele product heeft de beschrijving: '{post_content}'.
-        Zorg ervoor dat de product beschrijving in correct Nederlands is geschreven. dus géén Vlaamse woorden.
         """
         
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=600
+            max_tokens=800
         )
         
         new_content = response.choices[0].message.content.strip().replace('"', '').replace("'", "")

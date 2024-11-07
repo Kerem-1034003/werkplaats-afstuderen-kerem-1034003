@@ -24,7 +24,8 @@ column_images = 'images'
 def rewrite_post_name(focus_keyword, post_name, max_retries=3):
     prompt = f"""
     Herschrijf de URL '{post_name}' zodat deze begint met het focus keyword '{focus_keyword}' 
-    en maximaal 70 tekens bevat inclusief spaties.
+    de url moet bestaan uit 5-6 woorden en mag maximaal 70 karakters bevatten inclusief spaties.
+    Ik verwacht alleen tekst en geen speciale tekens. 
     """
     
     for attempt in range(max_retries):
