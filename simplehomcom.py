@@ -15,7 +15,7 @@ client = OpenAI(api_key=openai_api_key)
 company_name = "Simpledeal"
 
 # Lees de Simpledeal Excel-bestand
-df = pd.read_excel('excel/simpledeal/simpledeal-cat.xlsx')
+df = pd.read_excel('excel/simpledeal/Map1.xlsx')
 
 # Zorg dat de `meta:_yoast_data` kolom tekst kan opslaan
 df['meta:_yoast_data'] = df['meta:_yoast_data'].astype(str)
@@ -23,25 +23,29 @@ df['description'] = df['description'].astype(str)
 
 # Functie voor herschrijven en vertalen van `name`
 def translate_and_rewrite_name(category_name, target_language="nl"):
-    if " " not in category_name:
-        return category_name.capitalize()  # Return de naam als het al 1 woord is
+    # Verwijder deze check, zodat we ook 1-woord categorieën kunnen vertalen
+    #if " " not in category_name:
+    #    return category_name.capitalize()  # Return de naam als het al 1 woord is
 
-    # Prompt die een correcte vertaling in 1 woord afdwingt
+    # Verbeterde prompt om samengestelde woorden correct te splitsen
     prompt = f"""
-    Vertaal '{category_name}' naar correct Nederlands als één enkel woord. 
-    Als het al in het Nederlands is, verbeter alleen typfouten. 
-    - Vertaal woorden nauwkeurig naar correct Nederlands.
-    - Gebruik enkel spaties tussen woorden, zonder streepjes of underscores.
-    - Vermijd speciale tekens zoals '-' of '_'.
-    - Gebruik hoofdletters alleen aan het begin van de naam of bij eigennamen.
-    Geef enkel het vertaalde of gecorrigeerde woord zonder extra uitleg of symbolen.
+    Vertaal de volgende productcategorie naar correct Nederlands. Als het al in het Nederlands is, verbeter dan alleen typfouten en zorg ervoor dat samengestelde woorden correct worden gesplitst.
+    - Vertaal samengestelde woorden zoals 'Sackcarrow' naar 'Steekwagen'.
+    - Zorg ervoor dat geen streepjes of underscores worden gebruikt, alleen spaties tussen woorden.
+    - Zorg ervoor dat de naam correct is geschreven, bijvoorbeeld: 'Zandbakken & toebehoren' moet 'Zandbakken en toebehoren' zijn.
+    - Gebruik alleen hoofdletters aan het begin van de naam of bij eigennamen.
+    Geef alleen de vertaalde of gecorrigeerde naam zonder extra uitleg of symbolen.
+    Categorie: '{category_name}'
     """
+    
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=20
     )
-    return response.choices[0].message.content.strip()  # Correcte manier om de response te krijgen
+    
+    # Return de vertaalde naam
+    return response.choices[0].message.content.strip()
 
 # Functie voor beschrijving van de categorie
 def generate_category_description(category_name):
@@ -111,6 +115,6 @@ for idx, row in df.iterrows():
     df.at[idx, 'meta:_yoast_data'] = meta_yoast_data
 
 # Opslaan naar een nieuw Excel-bestand
-df.to_excel('herschreven_excel/simpledeal/simpledealcat1.1.xlsx', index=False)
+df.to_excel('herschreven_excel/simpledeal/simpledealcat1.2.xlsx', index=False)
 print("Verwerking voltooid en opgeslagen")
 
