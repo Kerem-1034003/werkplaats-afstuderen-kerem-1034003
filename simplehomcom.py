@@ -6,7 +6,7 @@ import time
 
 # Laad de OpenAI API key
 load_dotenv()
-openai_api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = os.getenv('OPENAI_API_KEY2')
 
 # Initialiseer de OpenAI client
 client = OpenAI(api_key=openai_api_key)
@@ -15,36 +15,38 @@ client = OpenAI(api_key=openai_api_key)
 company_name = "Simpledeal"
 
 # Lees de Simpledeal Excel-bestand
-df = pd.read_excel('excel/simpledeal/Map1.xlsx')
+df = pd.read_excel('excel/simpledeal/simpledeal-cat.xlsx')
 
 # Zorg dat de `meta:_yoast_data` kolom tekst kan opslaan
 df['meta:_yoast_data'] = df['meta:_yoast_data'].astype(str)
 df['description'] = df['description'].astype(str)
 
-# Functie voor herschrijven en vertalen van `name`
-def translate_and_rewrite_name(category_name, target_language="nl"):
-    # Verwijder deze check, zodat we ook 1-woord categorieën kunnen vertalen
-    #if " " not in category_name:
-    #    return category_name.capitalize()  # Return de naam als het al 1 woord is
+predefined_translations = {
+    "Beautycases": "Toilettassen",
+    "SackCarrow": "Steekwagen",
+}
 
-    # Verbeterde prompt om samengestelde woorden correct te splitsen
-    prompt = f"""
-    Vertaal de volgende productcategorie naar correct Nederlands. Als het al in het Nederlands is, verbeter dan alleen typfouten en zorg ervoor dat samengestelde woorden correct worden gesplitst.
-    - Vertaal samengestelde woorden zoals 'Sackcarrow' naar 'Steekwagen'.
-    - Zorg ervoor dat geen streepjes of underscores worden gebruikt, alleen spaties tussen woorden.
-    - Zorg ervoor dat de naam correct is geschreven, bijvoorbeeld: 'Zandbakken & toebehoren' moet 'Zandbakken en toebehoren' zijn.
-    - Gebruik alleen hoofdletters aan het begin van de naam of bij eigennamen.
-    Geef alleen de vertaalde of gecorrigeerde naam zonder extra uitleg of symbolen.
-    Categorie: '{category_name}'
-    """
+# Functie voor vertalen en corrigeren van `name`
+def translate_and_correct_category(category_name):
+    # Check of er een vooraf gedefinieerde vertaling is
+    if category_name in predefined_translations:
+        return predefined_translations[category_name]
     
+    # Specifieke vertaling van & behouden
+    prompt = f"""
+    Als de productcategorie '{category_name}' niet in het Nederlands is, vertaal deze dan naar correct Nederlands.
+    Als de naam al in het Nederlands is maar typfouten of onjuiste samenstellingen bevat, verbeter deze dan.
+    Als er een '&' (ampersand) in de naam voorkomt, behoud deze dan en vervang deze niet door 'en'.
+    Geef alleen de naam als output zonder extra uitleg of symbolen.
+    """
+
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=20
     )
-    
-    # Return de vertaalde naam
+
+    # Return de vertaalde of gecorrigeerde naam
     return response.choices[0].message.content.strip()
 
 # Functie voor beschrijving van de categorie
@@ -97,24 +99,24 @@ def build_meta_yoast_data(focus_keyword):
 # Verwerk de rijen in de DataFrame
 for idx, row in df.iterrows():
     print(f"Processing row {idx + 1} of {len(df)}")
-    # Vertaal en herschrijf `name`
+    
+    # Stap 1: Vertaal en corrigeer de categorienaam
     category_name = row['name']
-    new_name = translate_and_rewrite_name(category_name)
-    df.at[idx, 'name'] = new_name
- 
+    corrected_name = translate_and_correct_category(category_name)
+    df.at[idx, 'name'] = corrected_name
+
     # Vul de slug-kolom in met de nieuwe naam, maar dan in kleine letters
-    df.at[idx, 'slug'] = new_name.lower()  # Zet de slug in kleine letters
+    df.at[idx, 'slug'] = corrected_name.lower()
 
     # Genereer beschrijving voor de categorie
-    category_description = generate_category_description(new_name)
+    category_description = generate_category_description(corrected_name)
     df.at[idx, 'description'] = category_description
 
     # Genereer meta:_yoast_data
-    focus_keyword = new_name  # Gebruik de herschreven categorienaam als focus keyword
+    focus_keyword = corrected_name  # Gebruik de herschreven categorienaam als focus keyword
     meta_yoast_data = build_meta_yoast_data(focus_keyword)
     df.at[idx, 'meta:_yoast_data'] = meta_yoast_data
 
 # Opslaan naar een nieuw Excel-bestand
-df.to_excel('herschreven_excel/simpledeal/simpledealcat1.2.xlsx', index=False)
+df.to_excel('herschreven_excel/simpledeal/simpledealcat.xlsx', index=False)
 print("Verwerking voltooid en opgeslagen")
-
