@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 from openai import OpenAI
+import re  
 import time
 
 # OpenAI API key laden
@@ -25,8 +26,17 @@ company_name = "AutoInkoopService"
 # Functie om focus keyword te genereren indien de kolom leeg is
 def generate_focus_keyword(title):
     if pd.notnull(title):
-        return title.split()[0]  # Gebruik het eerste woord uit de title als basis
+        # Pak de eerste twee woorden van de title, indien mogelijk
+        words = title.split()
+        focus_keyword = ' '.join(words[:2])  # Gebruik de eerste twee woorden als focus keyword
+        return focus_keyword
     return "algemeen"
+
+# Functie om WordPress-shortcodes om te zetten naar HTML
+def convert_shortcodes_to_html(content):
+    # Basis shortcode filtering voor bijvoorbeeld [shortcode] en [shortcode param="value"]
+    content = re.sub(r'\[/?[a-zA-Z0-9_]+.*?\]', '', content)  # Verwijder alle shortcodes tussen []
+    return content
 
 # Functie om tekst te splitsen op basis van alinea's
 def split_text_by_paragraphs(text, max_paragraphs):
@@ -37,6 +47,9 @@ def split_text_by_paragraphs(text, max_paragraphs):
 def rewrite_content(content, focus_keyword):
     if pd.notnull(content):
         try:
+            # Eerst de shortcodes omzetten naar HTML
+            content = convert_shortcodes_to_html(content)
+            
             word_count = len(content.split())
             if word_count > 1000:
                 split_contents = split_text_by_paragraphs(content, max_paragraphs=10)
@@ -50,9 +63,10 @@ def rewrite_content(content, focus_keyword):
 
                 messages = [
                     {"role": "user", "content": (
-                        "Herschrijf de volgende webpagina-inhoud voor de nieuwe werkwijze van AutoInkoopService.nl, "
-                        "inclusief nieuwe app-stappen en verbeterde klantenservice."
-                        "Behoud de structuur en voeg CTA's toe voor app-downloads."
+                        "Herschrijf de volgende webpagina-inhoud voor de nieuwe werkwijze van AutoInkoopService.nl, Inclusief nieuwe app-stappen en verbeterde klantenservice. "
+                        "Behoud de structuur, gebruik alleen noodzakelijke tags zoals `<h2>`, `<h3>`, en `<p>` voor de structuur,"
+                        "Houd het eenvoudig en overzichtelijk. Vermijd overmatige styling en herhaling van CTA's; zorg er alleen voor dat de kernstappen en belangrijke informatie goed georganiseerd zijn in een logische structuur. "
+                        "Maak gebruik van <h2> en <h3> voor belangrijke secties, en <p> voor paragrafen."
                         f"\n\n{combined_content}"
                     )}
                 ]
@@ -105,36 +119,47 @@ def fill_content(content):
             return content
     return content
 
-# Functie om nieuwe meta title te genereren
 def generate_meta_title(subject, focus_keyword):
     prompt = (
-        f"Schrijf een SEO-geoptimaliseerde meta title voor {subject},, beginnend met het focus keyword '{focus_keyword}', en gevolgd door een powerword."
-        "De titel moet bestaan uit 5-6 woorden, en mag niet langer zijn dan 55 karakters inclusief spaties."
-        f"Bijvoorbeeld: 'Snel uw auto verkopen | {company_name}'."
+        f"Schrijf een SEO-geoptimaliseerde meta title voor '{subject}', beginnend met het focus keyword '{focus_keyword}'. "
+        "Gebruik maximaal 5-6 woorden en voeg geen herhalingen van het focus keyword toe. "
+        "De titel mag niet langer zijn dan 55 karakters, inclusief spaties. "
+        f"Bijvoorbeeld: '{focus_keyword} - Uw auto verkopen in één stap'."
+        f"Ander voorbeeld: '{focus_keyword} - inkoop auto | '{company_name}'."
     )
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=60,
-            temperature=0.6
         )
-        title = response.choices[0].message.content.strip()
-        title = title.replace('"', '').replace("'", "")
-        return f"{focus_keyword} | {title}" if len(title) < 43 else title
+        
+        # Verwerk de gegenereerde titel
+        meta_title = response.choices[0].message.content.strip()
+        
+        # Haal aanhalingstekens weg en controleer de lengte
+        meta_title = meta_title.replace('"', '').replace("'", "")
+        
+        # Voeg bedrijfsnaam toe als de titel kort genoeg is
+        if len(meta_title) < 40:
+            full_title = f"{meta_title} | {company_name}"
+        else:
+            full_title = meta_title
+
+        return full_title
     except Exception as e:
         print(f"Error generating meta title: {e}")
         return ""
 
-# Functie om nieuwe meta description te genereren
 def generate_meta_description(subject, focus_keyword, existing_description):
-    prompt = (f""""
-        Schrijf een aantrekkelijke SEO geoptimaliseerd meta description {subject}, beginnend met het focus keyword '{focus_keyword}'.
-        De meta description mag bestaan uit maximaal 150 karakters incluisef spaties.
-        Ik wil maximaal 2 zinnen in de description:
-            - De eerste zin begind met de focus keyword '{focus_keyword}' en moet de belangrijkste boodschap van het pagina duidelijk maken.
-            - De tweede zin moet een duidelijke call-to-action bevatten.
-    """)
+    if focus_keyword.lower() in subject.lower():
+        subject = subject.replace(focus_keyword, "").strip()  # Vermijd dubbele focus keyword in description
+    prompt = (
+        f"Schrijf een SEO-geoptimaliseerde meta description voor {subject}, beginnend met '{focus_keyword}'. "
+        "De description mag maximaal 150 karakters bevatten. Ik wil maximaal 2 zinnen: "
+        f"1) Begin met '{focus_keyword}' en geef de belangrijkste boodschap aan. "
+        "2) Voeg een heldere call-to-action toe."
+    )
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -142,8 +167,21 @@ def generate_meta_description(subject, focus_keyword, existing_description):
             max_tokens=100,
             temperature=0.6
         )
+
         description = response.choices[0].message.content.strip()
-        return f"{focus_keyword} | {description[:150]}" if len(description) > 150 else description
+        
+        # Opsplitsen in zinnen en houd maximaal twee zinnen
+        sentences = description.split('. ')
+        if len(sentences) > 2:
+            description = '. '.join(sentences[:2]) + '.'
+        
+        # Limiteer tot maximaal 150 tekens
+        if len(description) > 150:
+            description = description[:150].rstrip()  # Limiteer tot 150 karakters en verwijder overtollige spaties
+            if description[-1] != '.':  # Zorg ervoor dat de description correct wordt afgesloten
+                description += '.'
+        
+        return description
     except Exception as e:
         print(f"Error generating meta description: {e}")
         return existing_description
@@ -182,7 +220,7 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-output_file = 'herschreven_excel/autoinkoop/herschreven_autoinkoop_split_final_1.0.xlsx'
+output_file = 'herschreven_excel/autoinkoop/herschreven_autoinkoop_split_final_1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("De content, meta titles en descriptions zijn herschreven en opgeslagen.")
