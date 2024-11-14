@@ -48,23 +48,39 @@ def translate_and_correct_category(category_name):
 
 def generate_category_description(category_name):
     prompt = f"""
-    Schrijf een uitgebreide en informatieve beschrijving van minimaal 500 woorden voor de productcategorie '{category_name}'. De beschrijving moet voldoen aan de volgende voorwaarden:
-    1. Het focus keyword '{category_name}' moet minimaal vijf keer voorkomen in de tekst.
-    2. Gebruik HTML-formattering met korte paragrafen en koppen. Hierbij verwacht ik kopteksten 
-    3. De tekst moet gericht zijn op het aantrekken van potentiële klanten, waarbij de producten in deze categorie worden beschreven.
-    4. Gebruik korte en duidelijke paragrafen (maximaal 3-4 zinnen per alinea).
-    5. Sluit de beschrijving goed af, bij voorkeur met een call-to-action (bijvoorbeeld een uitnodiging om producten te bekijken).
+    Schrijf een uitgebreide beschrijving van minimaal 500 woorden voor de categorie '{category_name}' in eenvoudige HTML-indeling. 
+    Gebruik **alleen** <h1>, <h2>, en <p> tags voor de tekststructuur en gebruik geen andere HTML-elementen zoals <html>, <head>, of <body>. 
+    Begin met een <h1>-kop die de categorie introduceert en voeg <h2>-koppen toe voor verschillende secties zoals 'Introductie', 'Voordelen', 'Productassortiment' en 'Inspiratie'. 
+    Gebruik korte paragrafen van 3-4 zinnen en eindig met een call-to-action.
     """
 
-    # Maak een lange prompt voor OpenAI en stel een hogere max_tokens waarde in
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=1500  # Zorg ervoor dat we voldoende tokens krijgen voor een lange beschrijving
+        max_tokens=1500
     )
 
-    return response.choices[0].message.content.strip()
+    description = response.choices[0].message.content.strip()
 
+    # Controleer het aantal woorden
+    word_count = len(description.split())
+    
+    # Als het minder dan 500 woorden bevat, voeg extra tekst toe
+    if word_count < 500:
+        additional_prompt = f"""
+        De huidige beschrijving voor de categorie '{category_name}' bevat minder dan 500 woorden. Voeg aanvullende details toe om de tekst tot minimaal 500 woorden te maken. 
+        Houd je strikt aan de HTML-structuur met alleen <h2> en <p>-tags en vermijd het gebruik van <html>, <head>, <body> en andere HTML-elementen.
+        """
+        
+        additional_response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": additional_prompt}],
+            max_tokens=1500
+        )
+        
+        description += "\n" + additional_response.choices[0].message.content.strip()
+    
+    return description
 
 def build_meta_yoast_data(focus_keyword):
     # Genereer de meta title
