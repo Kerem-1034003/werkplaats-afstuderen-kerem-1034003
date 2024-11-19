@@ -1,139 +1,301 @@
 import os
+import re
 from dotenv import load_dotenv
 import pandas as pd
-import openai
+from openai import OpenAI
+import time
 
 load_dotenv()
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
 
-openai.api_key = openai_api_key
+# Initialiseer de OpenAI client
+client = OpenAI(api_key=openai_api_key)
 
-df = pd.read_excel('excel/simpledeal/kinderschommels.xlsx')
-columns_low_temp = ['Material','Category', 'Color']
-columns_high_temp = ['Name','Description','Bullet Points']
+# Laad de DataFrame
+df = pd.read_excel('excel/simpledeal/Map2.xlsx')
 
-abbreviations = ['PE', 'PU', 'PVC'] 
+# Definieer de kolomnamen
+column_post_title = 'post_title'
+column_post_name = 'post_name'
+column_post_content = 'post_content'
+column_meta_title = 'meta:_yoast_wpseo_title'
+column_meta_description = 'meta:_yoast_wpseo_metadesc'
+column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
 
-# functie voor vertalen met lage temperature (voor nauwkeurigheid)
-def translate_text_low_temp(text):
-    if pd.notnull(text):
-        if text in abbreviations:
-            return text
+# Cast relevante kolommen naar strings om datatypeproblemen te voorkomen
+df[column_focus_keyword] = df[column_focus_keyword].astype(str)
+df[column_meta_title] = df[column_meta_title].astype(str)
+df[column_meta_description] = df[column_meta_description].astype(str)
+df[column_post_name] = df[column_post_name].astype(str)
+
+company_name = "Simpledeal"
+
+# Functie voor het genereren van één focus keyword
+def generate_focus_keyword(post_title):
+    prompt = f"""
+    Genereer één SEO-geoptimaliseerd focus keyword voor '{post_title}'. 
+    Het keyword moet specifiek zijn voor het product, maximaal 2 woorden bevatten, en in het Nederlands zijn. 
+    Vermijd speciale tekens of afkortingen.
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=10
+    )
+
+    keyword = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+    keyword = re.sub(r'[^a-zA-Z0-9\s-]', '', keyword).lower()  # Verwijder speciale tekens en zet alles in kleine letters
+    return keyword
+
+# Functie voor het herschrijven van de URL (post_name)
+def rewrite_post_name(focus_keyword, post_name, max_retries=3):
+    prompt = f"""
+    Herschrijf de URL '{post_name}' zodat deze begint met het focus keyword '{focus_keyword}', 
+    bevat 5-6 woorden en niet meer dan 70 karakters inclusief spaties. Gebruik alleen letters, cijfers, en koppeltekens.
+    Geen speciale tekens of slashes (/). 
+    """
+
+    for attempt in range(max_retries):
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Translate this text to Dutch: {text}"}
-                ],
-                temperature=0,  # Lage temperature voor consistentie
-                max_tokens=700
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=100  # Beperk tot 50 tokens voor een compacte URL
             )
-            translated_text = response['choices'][0]['message']['content']
-            return translated_text.strip()
-        except Exception as e:
-            print(f"Translation error (low temp): {e}")
-            return text
-    return text
+            # Verwijder ongewenste tekens en controleer lengte
+            new_post_name = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+            
+            # Gebruik regex om alle tekens behalve alfanumerieke karakters en koppeltekens te verwijderen
+            new_post_name = re.sub(r"[^a-zA-Z0-9\- ]", "", new_post_name)
+            
+            # Vervang spaties door koppeltekens en maak de tekst geschikt voor URL
+            new_post_name = new_post_name.replace(" ", "-")
 
-# functie voor vertalen met hogere temperature (voor vloeiende output)
-def translate_text_high_temp(text):
-    if pd.notnull(text):
-        try:
-            response = openai.ChatCompletion.create(
+            # Controleer of de URL binnen de limiet van 70 karakters valt
+            if len(new_post_name) <= 70:
+                return new_post_name
+            else:
+                # Als de naam nog steeds te lang is, beperk tot de eerste 5 woorden
+                words = new_post_name.split("-")
+                new_post_name = "-".join(words[:5])
+
+                # Controleer opnieuw de lengte
+                if len(new_post_name) <= 70:
+                    return new_post_name
+                else:
+                    print(f"Warning: Generated URL still too long after adjustment: '{new_post_name}'")
+
+        except Exception as e:
+            print(f"Error rewriting post name (attempt {attempt + 1}): {e}")
+            time.sleep(2)  # Wacht 2 seconden voor een nieuwe poging
+
+    # Als alle pogingen falen, geef het originele post_name terug
+    return post_name
+
+# Functie voor het herschrijven van de producttitel
+def rewrite_product_title(post_title, focus_keyword):
+    try:
+        prompt = f"""
+        Schrijf een producttitel van minimaal 60 en maximaal 80 karakters inclusief spaties, beginnend met het focus keyword '{focus_keyword}',
+        gevolgd door een powerword.
+        Het originele product heeft de naam: '{post_title}'.
+        Zorg ervoor dat de titel in correct Nederlands is geschreven. dus géén Vlaamse woorden.
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60
+        )
+        
+        new_title = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+        return new_title
+    except Exception as e:
+        print(f"Error rewriting product title: {e}")
+        return post_title
+
+# Functie voor het herschrijven van de productbeschrijving
+def rewrite_product_content(post_content, focus_keyword):
+    try:
+        # Herschrijven van de productbeschrijving volgens de SEO-vereisten
+        prompt = f"""
+        Schrijf een HTML-geformatteerde productbeschrijving van minimaal 300 woorden en maximaal 500 woorden voor het product, 
+        met alleen headings en korte paragrafen. Gebruik de focus keywords '{focus_keyword}' op een natuurlijke manier. 
+        Gebruik '{focus_keyword}' maximaal 5 keer in de tekst. Als de limiet van 5 is bereikt, gebruik dan alternatieve formuleringen. 
+        Beschrijf de functies, voordelen, en specificaties op een klantgerichte manier.
+        Verbeter de volgende productbeschrijving zodat deze voldoet aan de volgende criteria:
+        - Voeg ten minste één geordende of ongeordende lijst toe.
+        - Zorg dat geen enkele sectie langer is dan 300 woorden zonder subkopteksten.
+        - Beperk zinnen tot maximaal 20 woorden en verbeter de leesbaarheid.
+        - Gebruik signaalwoorden (zoals 'daarom', 'hierdoor', 'bovendien', 'echter', 'ten slotte') in ten minste 30% van de zinnen.
+        - Gebruik het focus keyword '{focus_keyword}' maximaal 5 keer in de tekst.
+        - Zorg ervoor dat de eerste heading een <h3>-tag is en de subkoppen een <h4>-tag.
+        
+        Gebruik de volgende beschrijving als uitgangspunt: '{post_content}'.
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500
+        )
+        
+        new_content = response.choices[0].message.content.strip()
+
+        # Verwijder ongewenste heading-symbolen zoals ### (indien van toepassing)
+        new_content = re.sub(r'#+\s?', '', new_content)
+
+        # Vervang de eerste heading door <h3> en de subkoppen door <h4>
+        new_content = re.sub(r'(<h1>)', '<h3>', new_content)  # Eerste kop naar <h3>
+        new_content = re.sub(r'(<h2>)', '<h4>', new_content)  # Subkoppen naar <h4>
+
+        # Controleer en corrigeer gebruik van het focus keyword
+        focus_count = new_content.lower().count(focus_keyword.lower())
+        if focus_count > 5:
+            print(f"Focus keyword '{focus_keyword}' komt {focus_count} keer voor. Content wordt aangepast.")
+
+            adjustment_prompt = f"""
+            De volgende tekst bevat de focus keyword '{focus_keyword}' {focus_count} keer, wat te veel is. 
+            Herwerk de tekst zodat het keyword maximaal 5 keer voorkomt. Hier is de originele tekst: '{new_content}'.
+            """
+
+            adjustment_response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Translate this text to Dutch: {text}"}
-                ],
-                temperature=0.7,  # Hogere temperature voor vloeiendere vertaling
-                max_tokens=700
+                messages=[{"role": "user", "content": adjustment_prompt}],
+                max_tokens=1000
             )
-            translated_text = response['choices'][0]['message']['content']
-            return translated_text.strip()
-        except Exception as e:
-            print(f"Translation error (high temp): {e}")
-            return text
-    return text
+            
+            adjusted_content = adjustment_response.choices[0].message.content.strip()
+            new_content = adjusted_content
 
-#functie beschrijving
-def improve_description(description):
-    if pd.notnull(description):
-        try:
-            # ChatGPT wordt gevraagd om een betere beschrijving
-            response = openai.ChatCompletion.create(
+        # Controleer of de uiteindelijke tekst aan de lengtevereisten voldoet
+        word_count = len(new_content.split())
+        if word_count < 300:
+            print(f"Tekst bevat slechts {word_count} woorden. Extra informatie wordt toegevoegd.")
+            
+            additional_prompt = f"""
+            Voeg meer informatie toe aan de volgende beschrijving om deze minstens 300 woorden te maken en maximaal 500 woorden. 
+            Zorg ervoor dat het focus keyword '{focus_keyword}' maximaal 5 keer voorkomt, en gebruik andere relevante keywords waar nodig: '{new_content}'.
+            """
+            
+            additional_response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Verbeter deze productbeschrijving en let op dat de specificaties ook staan beschreven onder de productbeschrijving.Het moet ook in html formaat met gebruik van <p>,<h3>,<ul>,<li>. : {description}"}
-                ],
-                max_tokens=700  # Aantal tokens in de reactie
+                messages=[{"role": "user", "content": additional_prompt}],
+                max_tokens=1000
             )
-            improved_text = response['choices'][0]['message']['content']
-            return improved_text.strip()
-        except Exception as e:
-            print(f"Error improving description: {e}")
-            return description  # Geef originele tekst terug bij fout
-    return description
+            
+            additional_content = additional_response.choices[0].message.content.strip()
+            new_content += " " + additional_content
 
-# functie naam verbeteren
-def improve_name(name, description):
-    if pd.notnull(name):
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Verbeter de productnaam '{name}' en maak het logisch. Gebruik de beschrijving: '{description}' om de naam kloppend te maken."}
-                ],
-                max_tokens=700
-            )
-            improved_text = response['choices'][0]['message']['content']
-            return improved_text.strip()
-        except Exception as e:
-            print(f"Error improving name: {e}")
-            return name
-    return name
+        # Retourneer de uiteindelijke herschreven beschrijving
+        return new_content
 
-# functie bullet points verbeteren
-def improve_bullet_points(bullet_points):
-    if pd.notnull(bullet_points):
-        try:
-            # Vraag OpenAI om de bullet points te verbeteren
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Verbeter de beschrijving houd het klantvriendelijk, het moet ook in html formaat met gebruik van <p>,<h3>,<ul>,<li>: {bullet_points}"}
-                ],
-                max_tokens=700  # Limiteer de lengte van de verbeterde bullet points
-            )
-            improved_text = response['choices'][0]['message']['content']
-            return improved_text.strip()
-        except Exception as e:
-            print(f"Error improving bullet points: {e}")
-            return bullet_points  # Geef de originele bullet points terug bij een fout
-    return bullet_points
+    except Exception as e:
+        print(f"Error rewriting product content: {e}")
+        return post_content
 
-# Stap 1: Vertaling van de kolommen met lage temperature
-for column in columns_low_temp:
-    if column in df.columns:
-        df[column] = df[column].apply(translate_text_low_temp)
 
-# Stap 2: Vertaling van de kolommen met hogere temperature (Description, Bullet Points)
-for column in columns_high_temp:
-    if column in df.columns:
-        df[column] = df[column].apply(translate_text_high_temp)
+# Functie voor het genereren van de meta title
+def generate_meta_title(focus_keyword):
+    try:
+        prompt = (
+            f"Schrijf een SEO-geoptimaliseerde meta title, beginnend met het focus keyword '{focus_keyword}', en gevolgd door een powerword. "
+            "De titel moet bestaan uit 5-6 woorden, en mag niet langer zijn dan 60 karakters inclusief spaties. "
+            "Zorg ervoor dat de titel niet wordt afgebroken en aantrekkelijk is voor de lezer."
+        )
 
-# Stap 3: Verbetering van de beschrijving
-if 'Description' in df.columns:
-    df['Description'] = df['Description'].apply(improve_description)
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=30
+        )
 
-# Stap 4: Verbetering van de naam met behulp van description
-if 'Name' in df.columns and 'Description' in df.columns:
-    df['Name'] = df.apply(lambda row: improve_name(row['Name'], row['Description']), axis=1)
+        meta_title = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+        
+        if len(meta_title) < 47:
+            full_title = f"{meta_title} | {company_name}"
+        else:
+            full_title = meta_title
 
-# Stap 5: Verbetering van de bullet points
-if 'Bullet Points' in df.columns:
-    df['Bullet Points'] = df['Bullet Points'].apply(improve_bullet_points)
+        return full_title
+    except Exception as e:
+        print(f"Error generating meta title: {e}")
+        return f"{focus_keyword} | {company_name}"
 
-# Opslaan naar een nieuw bestand
-df.to_excel('herschreven_excel/simpledeal/improved_data.xlsx', index=False)
+def generate_meta_description(post_title, focus_keyword):
+    try:
+        prompt = f"""
+        Schrijf een SEO-geoptimaliseerde meta description van maximaal 150 tekens voor '{post_title}', 
+        met de focus op het keyword '{focus_keyword}'. De meta description moet aantrekkelijk zijn en
+        exact 2 zinnen bevatten:
+        - De eerste zin beschrijft het product, beginnend met het focus keyword '{focus_keyword}'.
+        - De tweede zin eindigt met een duidelijke call-to-action.
+        """
 
-print ("Het bestand is vertaald en juist beschreven")
+        # Vraag een meta description van de AI
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200
+        )
+
+        meta_description = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+
+        # Controleer of de meta description binnen de 150 tekens blijft
+        if len(meta_description) > 150:
+            # Verkort zonder de laatste zin af te breken
+            sentences = meta_description.split('. ')
+            if len(sentences) > 1:
+                meta_description = '. '.join(sentences[:2]) + '.'  # Houd alleen de eerste twee zinnen
+
+            # Knip de meta description af tot 150 tekens zonder woorden te breken
+            if len(meta_description) > 150:
+                meta_description = meta_description[:150].rsplit(' ', 1)[0] + "."
+
+        return meta_description
+    except Exception as e:
+        print(f"Error generating meta description: {e}")
+        return f"Product beschrijving van {post_title} met focus op {focus_keyword}."
+
+# Set voor unieke gegenereerde keywords voor de hele DataFrame
+generated_keywords = set()
+
+# Itereer door elke rij in de DataFrame
+for index, row in df.iterrows():
+    print(f"Processing row {index + 1} of {len(df)}") 
+    post_title = row[column_post_title]
+    
+    # Genereer één focus keyword
+    primary_keyword = generate_focus_keyword(post_title)
+    df.at[index, column_focus_keyword] = primary_keyword
+
+    # URL herschrijven
+    post_name = row[column_post_name]
+    new_post_name = rewrite_post_name(primary_keyword, post_name)
+    df.at[index, column_post_name] = new_post_name
+
+    # Producttitel herschrijven
+    new_title = rewrite_product_title(post_title, primary_keyword)
+    df.at[index, column_post_title] = new_title
+
+    # Productbeschrijving herschrijven
+    post_content = row[column_post_content]
+    new_content = rewrite_product_content(post_content, primary_keyword)
+    df.at[index, column_post_content] = new_content
+
+    # Meta title en description genereren
+    new_meta_title = generate_meta_title(primary_keyword)
+    new_meta_description = generate_meta_description(post_title, primary_keyword)
+    df.at[index, column_meta_title] = new_meta_title
+    df.at[index, column_meta_description] = new_meta_description
+
+    # Pauze tussen API-aanroepen om rate limits te respecteren
+    time.sleep(1)
+
+# Schrijf de resultaten naar een nieuw Excel-bestand
+output_file = 'herschreven_excel/simpledeal/Map2.xlsx'
+df.to_excel(output_file, index=False)
+
+print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
