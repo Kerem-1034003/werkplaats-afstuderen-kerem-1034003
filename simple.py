@@ -31,11 +31,32 @@ df[column_post_name] = df[column_post_name].astype(str)
 
 company_name = "Simpledeal"
 
+# Functie om Duitse titels naar het Nederlands te vertalen
+def translate_title_to_dutch(title):
+    try:
+        prompt = f"""
+        Vertaal de volgende producttitel van het Duits naar correct Nederlands: '{title}'. 
+        Zorg ervoor dat de vertaling duidelijk en klantgericht is.
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100
+        )
+        
+        translated_title = response.choices[0].message.content.strip()
+        return translated_title
+    except Exception as e:
+        print(f"Error translating title: {e}")
+        return title  # Retourneer de originele titel als de vertaling faalt
+
 # Functie voor het genereren van één focus keyword
 def generate_focus_keyword(post_title):
     prompt = f"""
     Genereer één SEO-geoptimaliseerd focus keyword voor '{post_title}'. 
-    Het keyword moet specifiek zijn voor het product, maximaal 2 woorden bevatten, en in het Nederlands zijn. 
+    Het keyword moet specifiek zijn voor het product, maximaal 2 woorden bevatten, en in het Nederlands zijn.
+    Ik wil Geen littekens, voorzetsels of kleuren in de focus keyword zien.
     Vermijd speciale tekens of afkortingen.
     """
 
@@ -48,6 +69,28 @@ def generate_focus_keyword(post_title):
     keyword = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
     keyword = re.sub(r'[^a-zA-Z0-9\s-]', '', keyword).lower()  # Verwijder speciale tekens en zet alles in kleine letters
     return keyword
+
+# Functie voor het herschrijven van de producttitel
+def rewrite_product_title(post_title, focus_keyword):
+    try:
+        prompt = f"""
+        Schrijf een producttitel beginnend met het focus keyword '{focus_keyword}', gevolgd door een powerword.
+        De titel moet bestaan uit 6-7 woorden, en mag niet langer zijn dan 80 karakters inclusief spaties. 
+        Het originele product heeft de naam: '{post_title}'.
+        Zorg ervoor dat de titel in correct Nederlands is geschreven. dus géén Duitse woorden.
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60
+        )
+        
+        new_title = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+        return new_title
+    except Exception as e:
+        print(f"Error rewriting product title: {e}")
+        return post_title
 
 # Functie voor het herschrijven van de URL (post_name)
 def rewrite_post_name(focus_keyword, post_name, max_retries=3):
@@ -94,34 +137,12 @@ def rewrite_post_name(focus_keyword, post_name, max_retries=3):
     # Als alle pogingen falen, geef het originele post_name terug
     return post_name
 
-# Functie voor het herschrijven van de producttitel
-def rewrite_product_title(post_title, focus_keyword):
-    try:
-        prompt = f"""
-        Schrijf een producttitel van minimaal 60 en maximaal 80 karakters inclusief spaties, beginnend met het focus keyword '{focus_keyword}',
-        gevolgd door een powerword.
-        Het originele product heeft de naam: '{post_title}'.
-        Zorg ervoor dat de titel in correct Nederlands is geschreven. dus géén Vlaamse woorden.
-        """
-        
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=60
-        )
-        
-        new_title = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
-        return new_title
-    except Exception as e:
-        print(f"Error rewriting product title: {e}")
-        return post_title
-
 # Functie voor het herschrijven van de productbeschrijving
 def rewrite_product_content(post_content, focus_keyword):
     try:
         # Herschrijven van de productbeschrijving volgens de SEO-vereisten
         prompt = f"""
-        Schrijf een HTML-geformatteerde productbeschrijving van minimaal 300 woorden en maximaal 500 woorden voor het product, 
+        Schrijf een HTML-geformatteerde productbeschrijving van minimaal 350 woorden voor het product, 
         met alleen headings en korte paragrafen. Gebruik de focus keywords '{focus_keyword}' op een natuurlijke manier. 
         Gebruik '{focus_keyword}' maximaal 5 keer in de tekst. Als de limiet van 5 is bereikt, gebruik dan alternatieve formuleringen. 
         Beschrijf de functies, voordelen, en specificaties op een klantgerichte manier.
@@ -266,26 +287,31 @@ generated_keywords = set()
 for index, row in df.iterrows():
     print(f"Processing row {index + 1} of {len(df)}") 
     post_title = row[column_post_title]
-    
-    # Genereer één focus keyword
+
+    # Stap 1: Vertaal de titel naar Nederlands
+    print(f"Translating title: {post_title}")
+    post_title = translate_title_to_dutch(post_title)
+    df.at[index, column_post_title] = post_title  # Update de titel in de DataFrame
+
+    # Stap 2: Genereer één focus keyword
     primary_keyword = generate_focus_keyword(post_title)
     df.at[index, column_focus_keyword] = primary_keyword
 
-    # URL herschrijven
+    # Stap 3: Producttitel herschrijven
+    new_title = rewrite_product_title(post_title, primary_keyword)
+    df.at[index, column_post_title] = new_title
+
+    # Stap 4: URL herschrijven
     post_name = row[column_post_name]
     new_post_name = rewrite_post_name(primary_keyword, post_name)
     df.at[index, column_post_name] = new_post_name
 
-    # Producttitel herschrijven
-    new_title = rewrite_product_title(post_title, primary_keyword)
-    df.at[index, column_post_title] = new_title
-
-    # Productbeschrijving herschrijven
+    # Stap 5: Productbeschrijving herschrijven
     post_content = row[column_post_content]
     new_content = rewrite_product_content(post_content, primary_keyword)
     df.at[index, column_post_content] = new_content
 
-    # Meta title en description genereren
+    # Stap 6: Meta title en description genereren
     new_meta_title = generate_meta_title(primary_keyword)
     new_meta_description = generate_meta_description(post_title, primary_keyword)
     df.at[index, column_meta_title] = new_meta_title
