@@ -22,6 +22,7 @@ column_post_content = 'post_content'
 column_meta_title = 'meta:_yoast_wpseo_title'
 column_meta_description = 'meta:_yoast_wpseo_metadesc'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
+column_images = 'images'
 
 # Cast relevante kolommen naar strings om datatypeproblemen te voorkomen
 df[column_focus_keyword] = df[column_focus_keyword].astype(str)
@@ -55,6 +56,7 @@ def translate_title_to_dutch(title):
 def generate_focus_keyword(post_title):
     prompt = f"""
     Genereer één SEO-geoptimaliseerd focus keyword voor '{post_title}'. 
+    Vermijd reeds gebruikte keywords en zorg voor variatie. Gebruik het meest specifieke en relevante woord dat het product in de titel '{post_title}' beschrijft.
     Het keyword moet specifiek zijn voor het product, maximaal 2 woorden bevatten, en in het Nederlands zijn.
     Ik wil Geen littekens, voorzetsels of kleuren in de focus keyword zien.
     Vermijd speciale tekens of afkortingen.
@@ -74,7 +76,7 @@ def generate_focus_keyword(post_title):
 def rewrite_product_title(post_title, focus_keyword):
     try:
         prompt = f"""
-        Schrijf een producttitel beginnend met het focus keyword '{focus_keyword}', gevolgd door een powerword.
+        Schrijf een producttitel beginnend met het focus keyword '{focus_keyword}', en gevolgd door een powerword
         De titel moet bestaan uit 6-7 woorden, en mag niet langer zijn dan 80 karakters inclusief spaties. 
         Het originele product heeft de naam: '{post_title}'.
         Zorg ervoor dat de titel in correct Nederlands is geschreven. dus géén Duitse woorden.
@@ -217,7 +219,6 @@ def rewrite_product_content(post_content, focus_keyword):
         print(f"Error rewriting product content: {e}")
         return post_content
 
-
 # Functie voor het genereren van de meta title
 def generate_meta_title(focus_keyword):
     try:
@@ -248,9 +249,8 @@ def generate_meta_title(focus_keyword):
 def generate_meta_description(post_title, focus_keyword):
     try:
         prompt = f"""
-        Schrijf een SEO-geoptimaliseerde meta description van maximaal 150 tekens voor '{post_title}', 
-        met de focus op het keyword '{focus_keyword}'. De meta description moet aantrekkelijk zijn en
-        exact 2 zinnen bevatten:
+        Schrijf een SEO-geoptimaliseerde meta description van maximaal 150 tekens beginnend met het focus'{focus_keyword}'. 
+        De meta description moet aantrekkelijk zijn en exact 2 zinnen bevatten:
         - De eerste zin beschrijft het product, beginnend met het focus keyword '{focus_keyword}'.
         - De tweede zin eindigt met een duidelijke call-to-action.
         """
@@ -263,22 +263,55 @@ def generate_meta_description(post_title, focus_keyword):
         )
 
         meta_description = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+        
+        sentences = meta_description.split('. ')
 
-        # Controleer of de meta description binnen de 150 tekens blijft
-        if len(meta_description) > 150:
-            # Verkort zonder de laatste zin af te breken
-            sentences = meta_description.split('. ')
-            if len(sentences) > 1:
-                meta_description = '. '.join(sentences[:2]) + '.'  # Houd alleen de eerste twee zinnen
-
-            # Knip de meta description af tot 150 tekens zonder woorden te breken
-            if len(meta_description) > 150:
-                meta_description = meta_description[:150].rsplit(' ', 1)[0] + "."
+        if len(sentences) > 2:
+            meta_description = '. '.join(sentences[:2]) + '.'  # Houd alleen de eerste twee zinnen
 
         return meta_description
     except Exception as e:
         print(f"Error generating meta description: {e}")
         return f"Product beschrijving van {post_title} met focus op {focus_keyword}."
+    
+# Functie voor het toevoegen van alt-tekst aan afbeeldingen
+def add_alt_text_to_images(df, images_column='images', focus_keyword_column='meta:rank_math_focus_keyword', max_retries=3):
+    for idx, row in df.iterrows():
+        if pd.notna(row[images_column]):
+            images = row[images_column].split(' | ')
+            if images:
+                prompt = f"""
+                Genereer een korte en beschrijvende alt-tekst van ongeveer 75 karakters voor een productafbeelding, beginnend met het focus keyword: '{row[focus_keyword_column]}'. 
+                Houd de beschrijving relevant en helder, en in correct Nederlands.
+                """
+                
+                for attempt in range(max_retries):
+                    try:
+                        response = client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[{"role": "user", "content": prompt}],
+                            max_tokens=60,
+                            temperature=0.7
+                        )
+                        
+                        alt_text = response.choices[0].message.content.strip()
+                        parts = images[0].split(' ! ')
+                        new_parts = []
+                        for part in parts:
+                            if part.startswith('alt :'):
+                                new_parts.append(f"alt : {alt_text}")
+                            else:
+                                new_parts.append(part)
+                        images[0] = ' ! '.join(new_parts)
+                        break
+                    
+                    except Exception as e:
+                        print(f"Error generating alt text for row {idx} on attempt {attempt + 1}: {e}")
+                        time.sleep(2)
+                
+                df.at[idx, images_column] = ' | '.join(images)
+
+    return df
 
 # Set voor unieke gegenereerde keywords voor de hele DataFrame
 generated_keywords = set()
@@ -289,7 +322,6 @@ for index, row in df.iterrows():
     post_title = row[column_post_title]
 
     # Stap 1: Vertaal de titel naar Nederlands
-    print(f"Translating title: {post_title}")
     post_title = translate_title_to_dutch(post_title)
     df.at[index, column_post_title] = post_title  # Update de titel in de DataFrame
 
@@ -320,6 +352,12 @@ for index, row in df.iterrows():
     # Pauze tussen API-aanroepen om rate limits te respecteren
     time.sleep(1)
 
+    # Stap 7: Alt-tekst genereren voor afbeeldingen
+    df = add_alt_text_to_images(
+        df, 
+        images_column='images', 
+        focus_keyword_column=column_focus_keyword
+    )
 # Schrijf de resultaten naar een nieuw Excel-bestand
 output_file = 'herschreven_excel/simpledeal/Map2.xlsx'
 df.to_excel(output_file, index=False)
