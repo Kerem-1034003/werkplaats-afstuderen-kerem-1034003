@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('excel/simpledeal/Map2.xlsx')
+df = pd.read_excel('excel/simpledeal/Map1.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -56,8 +56,9 @@ def translate_title_to_dutch(title):
 def generate_focus_keyword(post_title):
     prompt = f"""
     Genereer één SEO-geoptimaliseerd focus keyword voor '{post_title}'. 
+    Kies een enkel woord dat het meest specifieke en relevante aspect van het product beschrijft.
+    Het keyword moet specifiek zijn voor het product, maximaal 1 woord bevatten, en in het Nederlands zijn.
     Vermijd reeds gebruikte keywords en zorg voor variatie. Gebruik het meest specifieke en relevante woord dat het product in de titel '{post_title}' beschrijft.
-    Het keyword moet specifiek zijn voor het product, maximaal 2 woorden bevatten, en in het Nederlands zijn.
     Ik wil Geen littekens, voorzetsels of kleuren in de focus keyword zien.
     Vermijd speciale tekens of afkortingen.
     """
@@ -70,6 +71,12 @@ def generate_focus_keyword(post_title):
 
     keyword = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
     keyword = re.sub(r'[^a-zA-Z0-9\s-]', '', keyword).lower()  # Verwijder speciale tekens en zet alles in kleine letters
+
+    # Controleer of het keyword meer dan 2 woorden bevat
+    words = keyword.split()
+    if len(words) > 1:
+        keyword = " ".join(words[:1])  # Beperk tot de eerste 2 woorden
+        
     return keyword
 
 # Functie voor het herschrijven van de producttitel
@@ -98,8 +105,9 @@ def rewrite_product_title(post_title, focus_keyword):
 def rewrite_post_name(focus_keyword, post_name, max_retries=3):
     prompt = f"""
     Herschrijf de URL '{post_name}' zodat deze begint met het focus keyword '{focus_keyword}', 
-    bevat 5-6 woorden en niet meer dan 70 karakters inclusief spaties. Gebruik alleen letters, cijfers, en koppeltekens.
-    Geen speciale tekens of slashes (/). 
+    post name bevat maximaal 4-5 woorden en niet meer dan 70 karakters inclusief spaties. Gebruik alleen letters, cijfers, en koppeltekens.
+    Geen speciale tekens of slashes (/). Ook geen afmetingen of cijfers. 
+    Vertaal de url van het Duits naar correct Nederlands. 
     """
 
     for attempt in range(max_retries):
@@ -139,22 +147,19 @@ def rewrite_post_name(focus_keyword, post_name, max_retries=3):
     # Als alle pogingen falen, geef het originele post_name terug
     return post_name
 
-# Functie voor het herschrijven van de productbeschrijving
-def rewrite_product_content(post_content, focus_keyword):
+# Functie voor de productbeschrijving
+def rewrite_product_content(post_content, focus_keyword, new_title):
     try:
-        # Herschrijven van de productbeschrijving volgens de SEO-vereisten
         prompt = f"""
-        Schrijf een HTML-geformatteerde productbeschrijving van minimaal 350 woorden voor het product, 
-        met alleen headings en korte paragrafen. Gebruik de focus keywords '{focus_keyword}' op een natuurlijke manier. 
-        Gebruik '{focus_keyword}' maximaal 5 keer in de tekst. Als de limiet van 5 is bereikt, gebruik dan alternatieve formuleringen. 
+        Schrijf een uitgebreide HTML-geformatteerde productbeschrijving van minimaal 300 woorden over het product '{new_title}', 
+        met headings en paragrafen.
+        Gebruik '{focus_keyword}' maximaal 8 keer op een natuurlijk manier in de tekst. Als de limiet van 8 is bereikt, gebruik dan alternatieve formuleringen. 
         Beschrijf de functies, voordelen, en specificaties op een klantgerichte manier.
         Verbeter de volgende productbeschrijving zodat deze voldoet aan de volgende criteria:
         - Voeg ten minste één geordende of ongeordende lijst toe.
-        - Zorg dat geen enkele sectie langer is dan 300 woorden zonder subkopteksten.
-        - Beperk zinnen tot maximaal 20 woorden en verbeter de leesbaarheid.
         - Gebruik signaalwoorden (zoals 'daarom', 'hierdoor', 'bovendien', 'echter', 'ten slotte') in ten minste 30% van de zinnen.
-        - Gebruik het focus keyword '{focus_keyword}' maximaal 5 keer in de tekst.
         - Zorg ervoor dat de eerste heading een <h3>-tag is en de subkoppen een <h4>-tag.
+        Ik verwacht een product beschrijving terug van minimaal 300 woorden. en nier onder 300 woorden. 
         
         Gebruik de volgende beschrijving als uitgangspunt: '{post_content}'.
         """
@@ -167,21 +172,25 @@ def rewrite_product_content(post_content, focus_keyword):
         
         new_content = response.choices[0].message.content.strip()
 
+         # Controleer of er al een <h3>-heading bestaat
+        if "<h3>" in new_content:
+            # Vervang de eerste <h3>-heading met de product title
+            new_content = re.sub(r'<h3>(.*?)<\/h3>', f"<h3>{new_title}</h3>", new_content, count=1)
+
         # Verwijder ongewenste heading-symbolen zoals ### (indien van toepassing)
         new_content = re.sub(r'#+\s?', '', new_content)
-
         # Vervang de eerste heading door <h3> en de subkoppen door <h4>
         new_content = re.sub(r'(<h1>)', '<h3>', new_content)  # Eerste kop naar <h3>
         new_content = re.sub(r'(<h2>)', '<h4>', new_content)  # Subkoppen naar <h4>
 
         # Controleer en corrigeer gebruik van het focus keyword
         focus_count = new_content.lower().count(focus_keyword.lower())
-        if focus_count > 5:
+        if focus_count > 8:
             print(f"Focus keyword '{focus_keyword}' komt {focus_count} keer voor. Content wordt aangepast.")
 
             adjustment_prompt = f"""
             De volgende tekst bevat de focus keyword '{focus_keyword}' {focus_count} keer, wat te veel is. 
-            Herwerk de tekst zodat het keyword maximaal 5 keer voorkomt. Hier is de originele tekst: '{new_content}'.
+            Herwerk de tekst zodat het keyword maximaal 8 keer voorkomt. Hier is de originele tekst: '{new_content}'.
             """
 
             adjustment_response = client.chat.completions.create(
@@ -249,7 +258,8 @@ def generate_meta_title(focus_keyword):
 def generate_meta_description(post_title, focus_keyword):
     try:
         prompt = f"""
-        Schrijf een SEO-geoptimaliseerde meta description van maximaal 150 tekens beginnend met het focus'{focus_keyword}'. 
+        Schrijf een SEO-geoptimaliseerde meta description beginnend met het focus keyword'{focus_keyword}'. 
+        De meta descriptionmoet bestaan uit maximaal 2 zinnen en mag niet langer zijn dan 150 tekens inclusief spaties 
         De meta description moet aantrekkelijk zijn en exact 2 zinnen bevatten:
         - De eerste zin beschrijft het product, beginnend met het focus keyword '{focus_keyword}'.
         - De tweede zin eindigt met een duidelijke call-to-action.
@@ -279,37 +289,37 @@ def add_alt_text_to_images(df, images_column='images', focus_keyword_column='met
     for idx, row in df.iterrows():
         if pd.notna(row[images_column]):
             images = row[images_column].split(' | ')
-            if images:
-                prompt = f"""
-                Genereer een korte en beschrijvende alt-tekst van ongeveer 75 karakters voor een productafbeelding, beginnend met het focus keyword: '{row[focus_keyword_column]}'. 
-                Houd de beschrijving relevant en helder, en in correct Nederlands.
-                """
+        if images:
+            prompt = f"""
+            Genereer een korte en beschrijvende alt-tekst van ongeveer 75 karakters voor een productafbeelding, beginnend met het focus keyword: '{row[focus_keyword_column]}'. 
+            Houd de beschrijving relevant en helder, en in correct Nederlands.
+            """
                 
-                for attempt in range(max_retries):
-                    try:
-                        response = client.chat.completions.create(
-                            model="gpt-3.5-turbo",
-                            messages=[{"role": "user", "content": prompt}],
-                            max_tokens=60,
-                            temperature=0.7
-                        )
+        for attempt in range(max_retries):
+            try:
+                response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=60,
+                temperature=0.7
+                )
                         
-                        alt_text = response.choices[0].message.content.strip()
-                        parts = images[0].split(' ! ')
-                        new_parts = []
-                        for part in parts:
-                            if part.startswith('alt :'):
-                                new_parts.append(f"alt : {alt_text}")
-                            else:
-                                new_parts.append(part)
-                        images[0] = ' ! '.join(new_parts)
-                        break
+                alt_text = response.choices[0].message.content.strip()
+                parts = images[0].split(' ! ')
+                new_parts = []
+                for part in parts:
+                    if part.startswith('alt :'):
+                        new_parts.append(f"alt : {alt_text}")
+                    else:
+                        new_parts.append(part)
+                images[0] = ' ! '.join(new_parts)
+                break
                     
-                    except Exception as e:
-                        print(f"Error generating alt text for row {idx} on attempt {attempt + 1}: {e}")
-                        time.sleep(2)
+            except Exception as e:
+                print(f"Error generating alt text for row {idx} on attempt {attempt + 1}: {e}")
+                time.sleep(2)
                 
-                df.at[idx, images_column] = ' | '.join(images)
+        df.at[idx, images_column] = ' | '.join(images)
 
     return df
 
@@ -340,7 +350,7 @@ for index, row in df.iterrows():
 
     # Stap 5: Productbeschrijving herschrijven
     post_content = row[column_post_content]
-    new_content = rewrite_product_content(post_content, primary_keyword)
+    new_content = rewrite_product_content(post_content, primary_keyword, new_title)
     df.at[index, column_post_content] = new_content
 
     # Stap 6: Meta title en description genereren
@@ -350,7 +360,7 @@ for index, row in df.iterrows():
     df.at[index, column_meta_description] = new_meta_description
 
     # Pauze tussen API-aanroepen om rate limits te respecteren
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Stap 7: Alt-tekst genereren voor afbeeldingen
     df = add_alt_text_to_images(
@@ -359,7 +369,7 @@ for index, row in df.iterrows():
         focus_keyword_column=column_focus_keyword
     )
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = 'herschreven_excel/simpledeal/Map2.xlsx'
+output_file = 'herschreven_excel/simpledeal/Map1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
