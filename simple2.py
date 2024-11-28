@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import pandas as pd
 from openai import OpenAI
 import time
+import json
 
 load_dotenv()
 
@@ -100,11 +101,14 @@ def generate_meta_title(focus_keyword):
         print(f"Error generating meta title: {e}")
         return f"{focus_keyword} | {company_name}"
 
+
 def generate_meta_description(post_title, focus_keyword):
     try:
         prompt = f"""
-        Schrijf een SEO-geoptimaliseerde meta description beginnend met het focus keyword'{focus_keyword}'. 
-        De meta descriptionmoet bestaan uit maximaal 2 zinnen en mag niet langer zijn dan 150 tekens inclusief spaties 
+        Schrijf een SEO-geoptimaliseerde meta description beginnend met het focus keyword '{focus_keyword}'. 
+        De meta description moet aantrekkelijk zijn, ongeveer 20 woorden bevatten. precies 2 zinnen bevatten en tussen 120 en 150 tekens inclusief spaties lang zijn.
+        De meta description moet eindeigen met een punt. Dus geen uitroepteken of vraagteken. 
+        Gebruik de '{post_title}' als idee.  
         De meta description moet aantrekkelijk zijn en exact 2 zinnen bevatten:
         - De eerste zin beschrijft het product, beginnend met het focus keyword '{focus_keyword}'.
         - De tweede zin eindigt met een duidelijke call-to-action.
@@ -117,17 +121,34 @@ def generate_meta_description(post_title, focus_keyword):
             max_tokens=200
         )
 
-        meta_description = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
-        
-        sentences = meta_description.split('. ')
+        # Verwerk de output van de AI
+        meta_description = response.choices[0].message.content.strip()
 
+        # Splits zinnen op punten, vraagtekens of uitroeptekens gevolgd door spatie
+        sentences = re.split(r'(?<=[.!?])\s+', meta_description)
+
+        # Valideer de zinnen en beperk tot maximaal 2
         if len(sentences) > 2:
-            meta_description = '. '.join(sentences[:2]) + '.'  # Houd alleen de eerste twee zinnen
+            sentences = sentences[:2]  # Houd alleen de eerste twee zinnen
+
+        # Combineer de eerste twee zinnen en zorg dat het eindigt met een punt
+        meta_description = ' '.join(sentences).strip()
+        if not meta_description.endswith('.'):
+            meta_description += '.'
+
+        # Corrigeer ongewenste combinaties zoals !. of ?. door deze te vervangen met een enkelvoudig symbool
+        meta_description = re.sub(r'[!?]+\.', '.', meta_description)
+
+         # Voeg een derde zin toe als de lengte onder 120 tekens ligt
+        if len(meta_description) < 120:
+            meta_description += " Bestel nu bij Simpledeal."
 
         return meta_description
+
     except Exception as e:
         print(f"Error generating meta description: {e}")
         return f"Product beschrijving van {post_title} met focus op {focus_keyword}."
+
     
 # Functie voor het toevoegen van alt-tekst aan afbeeldingen
 def add_alt_text_to_images(df, images_column='images', focus_keyword_column='meta:rank_math_focus_keyword', max_retries=3):
@@ -168,6 +189,62 @@ def add_alt_text_to_images(df, images_column='images', focus_keyword_column='met
 
     return df
 
+
+def format_gtin_value(ean_value):
+    # Zorg ervoor dat de EAN waarde een string is (en geen lege waarde)
+    ean_value = str(ean_value).strip()  # Converteer de waarde naar string en verwijder extra spaties
+
+    if not ean_value:
+        return json.dumps({
+            "gtin8": "",
+            "gtin12": "",
+            "gtin13": "",
+            "gtin14": "",
+            "isbn": "",
+            "mpn": ""
+        })
+    
+    # Afhankelijk van de lengte van de EAN-waarde, vullen we de juiste GTIN-velden
+    if len(ean_value) == 8:
+        gtin8 = ean_value
+        gtin12 = ""
+        gtin13 = ""
+        gtin14 = ""
+    elif len(ean_value) == 12:
+        gtin8 = ""
+        gtin12 = ean_value
+        gtin13 = ""
+        gtin14 = ""
+    elif len(ean_value) == 13:
+        gtin8 = ""
+        gtin12 = ""
+        gtin13 = ean_value
+        gtin14 = ""
+    elif len(ean_value) == 14:
+        gtin8 = ""
+        gtin12 = ""
+        gtin13 = ""
+        gtin14 = ean_value
+    else:
+        # Onbekende GTIN-formaat, we gaan verder met een lege waarde
+        gtin8 = ""
+        gtin12 = ""
+        gtin13 = ""
+        gtin14 = ""
+
+    # Format de resulterende waarde als JSON-structuur
+    result = {
+        "gtin8": gtin8,
+        "gtin12": gtin12,
+        "gtin13": gtin13,
+        "gtin14": gtin14,
+        "isbn": "", 
+        "mpn": ""    
+    }
+
+    # Zet het resultaat om naar een JSON-string
+    return json.dumps(result)
+
 # Verwerking
 for index, row in df.iterrows():
     print(f"Processing row {index + 1} of {len(df)}")
@@ -189,9 +266,15 @@ for index, row in df.iterrows():
         images_column='images', 
         focus_keyword_column=column_focus_keyword
     )
+    
+    ean_value = row['meta:_alg_ean']  # De waarde uit de meta:_alg_ean kolom
+    formatted_value = format_gtin_value(ean_value)  # Het geformatteerde resultaat
 
+    # Voeg de geformatteerde waarde toe aan de meta:wpseo_global_identifier_values kolom
+    df.at[index, 'meta:wpseo_global_identifier_values'] = formatted_value
+    
 # Opslaan
-output_file = 'herschreven_excel/simpledeal/updated_simple.xlsx'
+output_file = 'herschreven_excel/simpledeal/updated_simple1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
