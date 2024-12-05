@@ -11,7 +11,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Excel bestand inlezen
-df = pd.read_excel('excel/autoinkoop/autoinkoop_split_final_1.xlsx')
+df = pd.read_excel('excel/autoinkoop/auto10.xlsx')
 
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
@@ -32,10 +32,13 @@ def generate_focus_keyword(title):
         return focus_keyword
     return "algemeen"
 
-# Functie om WordPress-shortcodes om te zetten naar HTML
+# Functie om WordPress-shortcodes om te zetten naar HTML, met speciale behandeling voor images
 def convert_shortcodes_to_html(content):
-    # Basis shortcode filtering voor bijvoorbeeld [shortcode] en [shortcode param="value"]
-    content = re.sub(r'\[/?[a-zA-Z0-9_]+.*?\]', '', content)  # Verwijder alle shortcodes tussen []
+    # Zet de image shortcodes om naar een <img> tag
+    content = re.sub(r'\[vcex_image[^\]]*image_id="(\d+)"[^\]]*\]', r'<img src="path/to/images/\1.jpg" alt="Auto Inkoop Service" />', content)
+
+    # Verwijder alle andere shortcodes (maar behoud de afbeeldingen)
+    content = re.sub(r'\[/?(?!vcex_image)[a-zA-Z0-9_]+.*?\]', '', content)  # Verwijder andere shortcodes, maar laat afbeeldingen intact
     return content
 
 # Functie om tekst te splitsen op basis van alinea's
@@ -220,7 +223,7 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-output_file = 'herschreven_excel/autoinkoop/herschreven_autoinkoop_split_final_1.xlsx'
+output_file = 'herschreven_excel/autoinkoop/herschreven_auto10.xlsx'
 df.to_excel(output_file, index=False)
 
 print("De content, meta titles en descriptions zijn herschreven en opgeslagen.")
