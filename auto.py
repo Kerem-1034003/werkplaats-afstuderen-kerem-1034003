@@ -19,7 +19,7 @@ column_meta_description = '_yoast_wpseo_metadesc'
 column_focus_keyword = '_yoast_wpseo_focuskw'
 column_title = 'Title'
 
-max_title_length = 60  
+max_title_length = 60
 max_description_length = 150  
 company_name = "AutoInkoopService"
 
@@ -32,13 +32,10 @@ def generate_focus_keyword(title):
         return focus_keyword
     return "algemeen"
 
-# Functie om WordPress-shortcodes om te zetten naar HTML, met speciale behandeling voor images
+# Functie om WordPress-shortcodes om te zetten naar HTML
 def convert_shortcodes_to_html(content):
-    # Zet de image shortcodes om naar een <img> tag
-    content = re.sub(r'\[vcex_image[^\]]*image_id="(\d+)"[^\]]*\]', r'<img src="path/to/images/\1.jpg" alt="Auto Inkoop Service" />', content)
-
-    # Verwijder alle andere shortcodes (maar behoud de afbeeldingen)
-    content = re.sub(r'\[/?(?!vcex_image)[a-zA-Z0-9_]+.*?\]', '', content)  # Verwijder andere shortcodes, maar laat afbeeldingen intact
+    # Basis shortcode filtering voor bijvoorbeeld [shortcode] en [shortcode param="value"]
+    content = re.sub(r'\[/?[a-zA-Z0-9_]+.*?\]', '', content)  # Verwijder alle shortcodes tussen []
     return content
 
 # Functie om tekst te splitsen op basis van alinea's
@@ -67,9 +64,24 @@ def rewrite_content(content, focus_keyword):
                 messages = [
                     {"role": "user", "content": (
                         "Herschrijf de volgende webpagina-inhoud voor de nieuwe werkwijze van AutoInkoopService.nl, Inclusief nieuwe app-stappen en verbeterde klantenservice. "
-                        "Behoud de structuur, gebruik alleen noodzakelijke tags zoals `<h2>`, `<h3>`, en `<p>` voor de structuur,"
-                        "Houd het eenvoudig en overzichtelijk. Vermijd overmatige styling en herhaling van CTA's; zorg er alleen voor dat de kernstappen en belangrijke informatie goed georganiseerd zijn in een logische structuur. "
+                        "Behoud de originele HTML-structuur en de Alinea-indeling, inclusief alinea's (<p>), koppen (<h2>, <h3>, <h4>), en opsommingen (<ul>, <li>). "
+                        "De hoeveelheid aantal woorden moet ongeveer gelijk blijven"
+
+                        f"Gebruik het focus keyword {focus_keyword} in de koptekst (bijvoorbeeld <h2>) en zorg ervoor dat het natuurlijk in de eerste paragraaf wordt verwerkt. "
+                        f"Houd de tekst natuurlijk en organisch, zonder te forceren, en plaats het focus keyword {focus_keyword} maximaal vijf keer in de tekst, in relevante context. "
+                        
+                        "Zorg ervoor dat de tekst leesbaar blijft en dat het focus keyword op een natuurlijke manier wordt geïntegreerd. "
+                        "Vermijd overmatige herhaling van het keyword. Zorg ervoor dat de tekst goed geoptimaliseerd is voor zoekmachines, maar de leesbaarheid voor de gebruiker blijft behouden. "
+
+                        "Pas de nieuwe werkwijze toe waar relevant, waarbij klanten worden aangemoedigd om de app te downloaden voor het aanmelden van auto's. "
                         "Maak gebruik van <h2> en <h3> voor belangrijke secties, en <p> voor paragrafen."
+                        "herschrijf de inhoud zodanig dat het de nieuwe stappen weerspiegelt:"
+                                "\n1. Meld uw auto aan via de app."
+                                "\n2. Ontvang biedingen van gekwalificeerde dealers."
+                                "\n3. Kies het beste bod en accepteer het."
+                                "\n4. Rond de verkoop veilig af via de app."
+                        "Gebruik specifieke Call-to-Actions (CTA's) zoals 'Download de app' en leg de nadruk op gebruiksgemak en snelheid van het proces. "
+                        "Er mag geen tekst staan dat we een nieuwe werkwijze hebben alleen de herschrijving naar de nieuwe werkwijze"
                         f"\n\n{combined_content}"
                     )}
                 ]
@@ -84,41 +96,10 @@ def rewrite_content(content, focus_keyword):
                 rewritten_parts.append(rewritten_text)
 
             rewritten_content = ' '.join(rewritten_parts)
-            return add_focus_keyword(rewritten_content, focus_keyword)
+            return rewritten_content
 
         except Exception as e:
             print(f"Error rewriting content: {e}")
-            return content
-    return content
-
-# Functie om focus keyword in content te injecteren
-def add_focus_keyword(content, focus_keyword):
-    # Voeg het focus keyword toe op verschillende plekken in de tekst als het nog niet aanwezig is
-    if content.count(focus_keyword) < 3:
-        content += f"\n\n{focus_keyword}" * (3 - content.count(focus_keyword))
-    return content
-
-# Functie om content aan te vullen tot minimaal 500 woorden
-def fill_content(content):
-    if pd.notnull(content):
-        try:
-            while len(content.split()) < 500:
-                prompt = (
-                    "Maak de volgende tekst compleet tot 500 woorden, passend bij de inhoud: "
-                    f"\n\n{content}"
-                )
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=2000,
-                    temperature=0.7
-                )
-                additional_text = response.choices[0].message.content.strip()
-                content += " " + additional_text
-            return content
-
-        except Exception as e:
-            print(f"Error filling content: {e}")
             return content
     return content
 
@@ -202,11 +183,10 @@ for idx, row in df.iterrows():
         focus_keyword = generate_focus_keyword(row[column_title])
         df.at[idx, column_focus_keyword] = focus_keyword  # Sla de gegenereerde focus keyword op
     
-    # Content herschrijven, aanvullen en focus keyword toevoegen
+    # Content herschrijven en focus keyword toevoegen
     original_content = row[column_content]
     rewritten_content = rewrite_content(original_content, focus_keyword)
-    filled_content = fill_content(rewritten_content)
-    df.at[idx, column_content] = filled_content
+    df.at[idx, column_content] = rewritten_content  
 
     # Meta title en description genereren
     subject = row[column_meta_title] if pd.notnull(row[column_meta_title]) else "Geen onderwerp"
@@ -223,7 +203,6 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-output_file = 'herschreven_excel/autoinkoop/herschreven_auto10.xlsx'
+output_file = 'herschreven_excel/autoinkoop/herschreven11.xlsx'
 df.to_excel(output_file, index=False)
-
-print("De content, meta titles en descriptions zijn herschreven en opgeslagen.")
+print(f"Verwerking voltooid! De herschreven data is opgeslagen in {output_file}")
