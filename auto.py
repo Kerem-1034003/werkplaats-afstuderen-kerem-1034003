@@ -43,19 +43,41 @@ def split_text_by_paragraphs(text, max_paragraphs):
     paragraphs = text.split("\n\n")
     return ['\n\n'.join(paragraphs[i:i + max_paragraphs]) for i in range(0, len(paragraphs), max_paragraphs)]
 
-# Functie om content te herschrijven met dynamisch splitsen en contextbehoud
+# Functie om content te herschrijven met behoud van alinea's en minimaal 300 woorden
 def rewrite_content(content, focus_keyword):
     if pd.notnull(content):
         try:
             # Eerst de shortcodes omzetten naar HTML
             content = convert_shortcodes_to_html(content)
-            
+
+            # Controleer het woordenaantal
             word_count = len(content.split())
+            
+            # Als minder dan 300 woorden, genereer extra inhoud binnen bestaande alinea's
+            if word_count < 300:
+                required_words = 300 - word_count
+                expansion_prompt = (
+                    f"De volgende tekst bevat minder dan 300 woorden. Vul de inhoud aan met ongeveer {required_words} woorden, "
+                    "door de bestaande alinea's uit te breiden. Voeg geen nieuwe secties toe, maar werk binnen de bestaande structuur.\n\n"
+                    f"Focus keyword: {focus_keyword}\n\n"
+                    f"Inhoud:\n{content}"
+                )
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": expansion_prompt}],
+                    max_tokens=4000,
+                    temperature=0.7,
+                )
+                content = response.choices[0].message.content.strip()
+                word_count = len(content.split())  # Update woordenaantal na uitbreiding
+
+            # Splits de inhoud indien nodig
             if word_count > 1000:
                 split_contents = split_text_by_paragraphs(content, max_paragraphs=10)
             else:
                 split_contents = [content]
 
+            # Herschrijf de inhoud in delen zonder woorden per alinea te verkorten
             rewritten_parts = []
             for idx, part in enumerate(split_contents):
                 context_text = "\n\n".join(rewritten_parts[-1:]) if rewritten_parts else ""
@@ -63,26 +85,22 @@ def rewrite_content(content, focus_keyword):
 
                 messages = [
                     {"role": "user", "content": (
-                        "Herschrijf de volgende webpagina-inhoud voor de nieuwe werkwijze van AutoInkoopService.nl, Inclusief nieuwe app-stappen en verbeterde klantenservice. "
-                        "Behoud de originele HTML-structuur en de Alinea-indeling, inclusief alinea's (<p>), koppen (<h2>, <h3>, <h4>), en opsommingen (<ul>, <li>). "
-                        "De hoeveelheid aantal woorden moet ongeveer gelijk blijven"
-
-                        f"Gebruik het focus keyword {focus_keyword} in de koptekst (bijvoorbeeld <h2>) en zorg ervoor dat het natuurlijk in de eerste paragraaf wordt verwerkt. "
-                        f"Houd de tekst natuurlijk en organisch, zonder te forceren, en plaats het focus keyword {focus_keyword} maximaal vijf keer in de tekst, in relevante context. "
+                        "Herschrijf de volgende webpagina-inhoud voor AutoInkoopService.nl met de volgende eisen: "
+                        "1. Behoud de originele hoeveelheid woorden per alinea. De herschreven tekst mag niet minder woorden per alinea bevatten dan het origineel. "
+                        "2. Gebruik een enkele <h1> voor de eerste kop,\n"
+                        "3. Gebruik <h2>, <h3>, enzovoort voor subkoppen afhankelijk van de hiërarchie.\n"
+                        "4. Alle paragrafen moeten worden ingesloten in <p>-tags.\n"
+                        f"5. Gebruik het focus keyword '{focus_keyword}' in de koptekst (bijvoorbeeld <h1>) en integreer het natuurlijk in de eerste paragraaf. "
+                        f"6. Zorg ervoor dat het focus keyword '{focus_keyword}' maximaal vijf keer voorkomt, verspreid over de tekst.\n\n"
                         
-                        "Zorg ervoor dat de tekst leesbaar blijft en dat het focus keyword op een natuurlijke manier wordt geïntegreerd. "
-                        "Vermijd overmatige herhaling van het keyword. Zorg ervoor dat de tekst goed geoptimaliseerd is voor zoekmachines, maar de leesbaarheid voor de gebruiker blijft behouden. "
-
-                        "Pas de nieuwe werkwijze toe waar relevant, waarbij klanten worden aangemoedigd om de app te downloaden voor het aanmelden van auto's. "
-                        "Maak gebruik van <h2> en <h3> voor belangrijke secties, en <p> voor paragrafen."
-                        "herschrijf de inhoud zodanig dat het de nieuwe stappen weerspiegelt:"
-                                "\n1. Meld uw auto aan via de app."
-                                "\n2. Ontvang biedingen van gekwalificeerde dealers."
-                                "\n3. Kies het beste bod en accepteer het."
-                                "\n4. Rond de verkoop veilig af via de app."
-                        "Gebruik specifieke Call-to-Actions (CTA's) zoals 'Download de app' en leg de nadruk op gebruiksgemak en snelheid van het proces. "
-                        "Er mag geen tekst staan dat we een nieuwe werkwijze hebben alleen de herschrijving naar de nieuwe werkwijze"
-                        f"\n\n{combined_content}"
+                        "Maak gebruik van de nieuwe werkwijze, met nadruk op gebruiksgemak en snelheid via de app. Zorg dat klanten worden aangemoedigd om deze te gebruiken."
+                        "\n\nPas de volgende stappen toe: "
+                        "1. Meld uw auto aan via de app."
+                        "2. Ontvang biedingen van gekwalificeerde dealers."
+                        "3. Kies het beste bod en accepteer het."
+                        "4. Rond de verkoop veilig af via de app.\n\n"
+                        "Herschrijf nu:\n\n"
+                        f"{combined_content}"
                     )}
                 ]
 
@@ -90,7 +108,7 @@ def rewrite_content(content, focus_keyword):
                     model="gpt-3.5-turbo",
                     messages=messages,
                     max_tokens=4000,
-                    temperature=0.7
+                    temperature=0.7,
                 )
                 rewritten_text = response.choices[0].message.content.strip()
                 rewritten_parts.append(rewritten_text)
@@ -203,6 +221,6 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-output_file = 'herschreven_excel/autoinkoop/herschreven11.xlsx'
+output_file = 'herschreven_excel/autoinkoop/herschreven15.xlsx'
 df.to_excel(output_file, index=False)
 print(f"Verwerking voltooid! De herschreven data is opgeslagen in {output_file}")
