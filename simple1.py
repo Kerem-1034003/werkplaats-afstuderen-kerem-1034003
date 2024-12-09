@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('excel/simpledeal/Map2.xlsx')
+df = pd.read_excel('excel/simpledeal/homcomproducten_1.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -53,7 +53,7 @@ def translate_title_to_dutch(title):
 def generate_focus_keyword(post_title):
     prompt = f"""
     Genereer één SEO-geoptimaliseerd focus keyword voor '{post_title}'. 
-    Kies een enkel woord dat het meest specifieke en relevante aspect van het product beschrijft.
+    Kies een enkel woord dat het meest specifieke en relevante aspect van het product beschrijft. dat kan ook een samengesteld woord zijn.
     Het keyword moet specifiek zijn voor het product, maximaal 1 woord bevatten, en in het Nederlands zijn.
     Vermijd reeds gebruikte keywords en zorg voor variatie. Gebruik het meest specifieke en relevante woord dat het product in de titel '{post_title}' beschrijft.
     Ik wil Geen littekens, voorzetsels of kleuren in de focus keyword zien.
@@ -108,9 +108,10 @@ def rewrite_product_content(post_content, focus_keyword, new_title):
         Beschrijf de functies, voordelen, en specificaties op een klantgerichte manier.
         Verbeter de volgende productbeschrijving zodat deze voldoet aan de volgende criteria:
         - Voeg ten minste één geordende of ongeordende lijst toe.
+        - Beperk 20% van de zinnen tot maximaal 20 woorden en verbeter de leesbaarheid.
         - Gebruik signaalwoorden (zoals 'daarom', 'hierdoor', 'bovendien', 'echter', 'ten slotte') in ten minste 30% van de zinnen.
         - Zorg ervoor dat de eerste heading een <h3>-tag is en de subkoppen een <h4>-tag.
-        Ik verwacht een product beschrijving terug van minimaal 300 woorden. en nier onder 300 woorden. 
+        Ik verwacht een product beschrijving terug van minimaal 300 woorden. en niet onder 300 woorden. 
         
         Gebruik de volgende beschrijving als uitgangspunt: '{post_content}'.
         """
@@ -141,7 +142,7 @@ def rewrite_product_content(post_content, focus_keyword, new_title):
 
             adjustment_prompt = f"""
             De volgende tekst bevat de focus keyword '{focus_keyword}' {focus_count} keer, wat te veel is. 
-            Herwerk de tekst zodat het keyword maximaal 6 keer voorkomt. Hier is de originele tekst: '{new_content}'.
+            Herwerk de tekst zodat het keyword maximaal 8 keer voorkomt. Hier is de originele tekst: '{new_content}'.
             """
 
             adjustment_response = client.chat.completions.create(
@@ -187,7 +188,7 @@ def rewrite_product_content(post_content, focus_keyword, new_title):
 
     except Exception as e:
         print(f"Error rewriting product content: {e}")
-        return post_content
+        return post_content   
 
 # Itereer door elke rij in de DataFrame
 for index, row in df.iterrows():
@@ -215,7 +216,7 @@ for index, row in df.iterrows():
     time.sleep(0.5)
    
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = 'herschreven_excel/simpledeal/simple.xlsx'
+output_file = 'herschreven_excel/simpledeal/homcomproducten_1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

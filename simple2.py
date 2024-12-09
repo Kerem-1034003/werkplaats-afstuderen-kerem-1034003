@@ -14,7 +14,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('herschreven_excel/simpledeal/simple.xlsx')
+df = pd.read_excel('herschreven_excel/simpledeal/homcomproducten_1.xlsx')
 
 column_post_name = 'post_name'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
@@ -61,15 +61,9 @@ def rewrite_post_name(focus_keyword, post_name, max_retries=3):
                 words = new_post_name.split("-")
                 new_post_name = "-".join(words[:5])
 
-                # Controleer opnieuw de lengte
-                if len(new_post_name) <= 70:
-                    return new_post_name
-                else:
-                    print(f"Warning: Generated URL still too long after adjustment: '{new_post_name}'")
-
         except Exception as e:
             print(f"Error rewriting post name (attempt {attempt + 1}): {e}")
-            time.sleep(2)  # Wacht 2 seconden voor een nieuwe poging
+            time.sleep(1)  
 
     # Als alle pogingen falen, geef het originele post_name terug
     return post_name
@@ -140,7 +134,7 @@ def generate_meta_description(post_title, focus_keyword):
         meta_description = re.sub(r'[!?]+\.', '.', meta_description)
 
          # Voeg een derde zin toe als de lengte onder 120 tekens ligt
-        if len(meta_description) < 120:
+        if len(meta_description) <= 120:
             meta_description += " Bestel nu bij Simpledeal."
 
         return meta_description
@@ -149,46 +143,48 @@ def generate_meta_description(post_title, focus_keyword):
         print(f"Error generating meta description: {e}")
         return f"Product beschrijving van {post_title} met focus op {focus_keyword}."
 
-    
-# Functie voor het toevoegen van alt-tekst aan afbeeldingen
 def add_alt_text_to_images(df, images_column='images', focus_keyword_column='meta:rank_math_focus_keyword', max_retries=3):
+    # Loop door de DataFrame rijen
     for idx, row in df.iterrows():
         if pd.notna(row[images_column]):
-            images = row[images_column].split(' | ')
-        if images:
-            prompt = f"""
-            Genereer een korte en beschrijvende alt-tekst van ongeveer 75 karakters voor een productafbeelding, beginnend met het focus keyword: '{row[focus_keyword_column]}'. 
-            Houd de beschrijving relevant en helder, en in correct Nederlands.
-            """
+            images = row[images_column].split(' | ')  # Afbeeldingen splitsen
+            if images:
+                prompt = f"""
+                Genereer een korte en beschrijvende alt-tekst van ongeveer 75 karakters voor een productafbeelding, beginnend met het focus keyword: '{row[focus_keyword_column]}'. 
+                Houd de beschrijving relevant en helder, en in correct Nederlands.
+                """
                 
-        for attempt in range(max_retries):
-            try:
-                response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=60,
-                temperature=0.7
-                )
+                for attempt in range(max_retries):
+                    try:
+                        # API-aanroep om de alt-tekst te genereren
+                        response = client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[{"role": "user", "content": prompt}],
+                            max_tokens=60,
+                            temperature=0.7
+                        )
                         
-                alt_text = response.choices[0].message.content.strip()
-                parts = images[0].split(' ! ')
-                new_parts = []
-                for part in parts:
-                    if part.startswith('alt :'):
-                        new_parts.append(f"alt : {alt_text}")
-                    else:
-                        new_parts.append(part)
-                images[0] = ' ! '.join(new_parts)
-                break
+                        alt_text = response.choices[0].message.content.strip()
+                        
+                        # Update de afbeeldingen met alt-tekst (als de alt-tekst niet bestaat)
+                        new_images = []
+                        for image in images:
+                            if image.startswith('alt :'):
+                                # Vervang de bestaande alt-tekst
+                                new_images.append(f"alt : {alt_text}")
+                            else:
+                                # Voeg de alt-tekst toe als deze er nog niet is
+                                new_images.append(image)
+                                
+                        # Update de rij in de DataFrame
+                        df.at[idx, images_column] = ' | '.join(new_images)
+                        break
                     
-            except Exception as e:
-                print(f"Error generating alt text for row {idx} on attempt {attempt + 1}: {e}")
-                time.sleep(2)
-                
-        df.at[idx, images_column] = ' | '.join(images)
-
+                    except Exception as e:
+                        print(f"Error generating alt text for row {idx} on attempt {attempt + 1}: {e}")
+                        time.sleep(1)
+    
     return df
-
 
 def format_gtin_value(ean_value):
     # Zorg ervoor dat de EAN waarde een string is (en geen lege waarde)
@@ -241,11 +237,10 @@ def format_gtin_value(ean_value):
         "isbn": "", 
         "mpn": ""    
     }
-
     # Zet het resultaat om naar een JSON-string
     return json.dumps(result)
 
-# Verwerking
+# Verwerking van de DataFrame
 for index, row in df.iterrows():
     print(f"Processing row {index + 1} of {len(df)}")
     
@@ -260,21 +255,24 @@ for index, row in df.iterrows():
 
     new_meta_description = generate_meta_description(row['post_title'], focus_keyword)
     df.at[index, column_meta_description] = new_meta_description
-
-    df = add_alt_text_to_images(
-        df, 
-        images_column='images', 
-        focus_keyword_column=column_focus_keyword
-    )
     
     ean_value = row['meta:_alg_ean']  # De waarde uit de meta:_alg_ean kolom
     formatted_value = format_gtin_value(ean_value)  # Het geformatteerde resultaat
 
     # Voeg de geformatteerde waarde toe aan de meta:wpseo_global_identifier_values kolom
     df.at[index, 'meta:wpseo_global_identifier_values'] = formatted_value
-    
+
+# Voeg alt-tekst toe aan afbeeldingen
+df = add_alt_text_to_images(df, images_column='images', focus_keyword_column=column_focus_keyword)
+
+# Sla tussentijdse resultaten op na elke 50 rijen om verlies van gegevens te voorkomen
+if (index + 1) % 50 == 0:
+    temp_output_file = f'herschreven_excel/simpledeal/temp_output_{index + 1}.xlsx'
+    df.to_excel(temp_output_file, index=False)
+    print(f"Tussentijdse resultaten opgeslagen in: {temp_output_file}")
+
 # Opslaan
-output_file = 'herschreven_excel/simpledeal/updated_simple1.xlsx'
+output_file = 'herschreven_excel/simpledeal/homcomproducten_final_1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
