@@ -11,7 +11,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Excel bestand inlezen
-df = pd.read_excel('excel/autoinkoop/autoinkoop_split_final_1.xlsx')
+df = pd.read_excel('excel/autoinkoop/auto10.xlsx')
 
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
@@ -19,7 +19,7 @@ column_meta_description = '_yoast_wpseo_metadesc'
 column_focus_keyword = '_yoast_wpseo_focuskw'
 column_title = 'Title'
 
-max_title_length = 60  
+max_title_length = 60
 max_description_length = 150  
 company_name = "AutoInkoopService"
 
@@ -43,19 +43,41 @@ def split_text_by_paragraphs(text, max_paragraphs):
     paragraphs = text.split("\n\n")
     return ['\n\n'.join(paragraphs[i:i + max_paragraphs]) for i in range(0, len(paragraphs), max_paragraphs)]
 
-# Functie om content te herschrijven met dynamisch splitsen en contextbehoud
+# Functie om content te herschrijven met behoud van alinea's en minimaal 300 woorden
 def rewrite_content(content, focus_keyword):
     if pd.notnull(content):
         try:
             # Eerst de shortcodes omzetten naar HTML
             content = convert_shortcodes_to_html(content)
-            
+
+            # Controleer het woordenaantal
             word_count = len(content.split())
+            
+            # Als minder dan 300 woorden, genereer extra inhoud binnen bestaande alinea's
+            if word_count < 300:
+                required_words = 300 - word_count
+                expansion_prompt = (
+                    f"De volgende tekst bevat minder dan 300 woorden. Vul de inhoud aan met ongeveer {required_words} woorden, "
+                    "door de bestaande alinea's uit te breiden. Voeg geen nieuwe secties toe, maar werk binnen de bestaande structuur.\n\n"
+                    f"Focus keyword: {focus_keyword}\n\n"
+                    f"Inhoud:\n{content}"
+                )
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": expansion_prompt}],
+                    max_tokens=4000,
+                    temperature=0.7,
+                )
+                content = response.choices[0].message.content.strip()
+                word_count = len(content.split())  # Update woordenaantal na uitbreiding
+
+            # Splits de inhoud indien nodig
             if word_count > 1000:
                 split_contents = split_text_by_paragraphs(content, max_paragraphs=10)
             else:
                 split_contents = [content]
 
+            # Herschrijf de inhoud in delen zonder woorden per alinea te verkorten
             rewritten_parts = []
             for idx, part in enumerate(split_contents):
                 context_text = "\n\n".join(rewritten_parts[-1:]) if rewritten_parts else ""
@@ -63,11 +85,22 @@ def rewrite_content(content, focus_keyword):
 
                 messages = [
                     {"role": "user", "content": (
-                        "Herschrijf de volgende webpagina-inhoud voor de nieuwe werkwijze van AutoInkoopService.nl, Inclusief nieuwe app-stappen en verbeterde klantenservice. "
-                        "Behoud de structuur, gebruik alleen noodzakelijke tags zoals `<h2>`, `<h3>`, en `<p>` voor de structuur,"
-                        "Houd het eenvoudig en overzichtelijk. Vermijd overmatige styling en herhaling van CTA's; zorg er alleen voor dat de kernstappen en belangrijke informatie goed georganiseerd zijn in een logische structuur. "
-                        "Maak gebruik van <h2> en <h3> voor belangrijke secties, en <p> voor paragrafen."
-                        f"\n\n{combined_content}"
+                        "Herschrijf de volgende webpagina-inhoud voor AutoInkoopService.nl met de volgende eisen: "
+                        "1. Behoud de originele hoeveelheid woorden per alinea. De herschreven tekst mag niet minder woorden per alinea bevatten dan het origineel. "
+                        "2. Gebruik een enkele <h1> voor de eerste kop,\n"
+                        "3. Gebruik <h2>, <h3>, enzovoort voor subkoppen afhankelijk van de hiërarchie.\n"
+                        "4. Alle paragrafen moeten worden ingesloten in <p>-tags.\n"
+                        f"5. Gebruik het focus keyword '{focus_keyword}' in de koptekst (bijvoorbeeld <h1>) en integreer het natuurlijk in de eerste paragraaf. "
+                        f"6. Zorg ervoor dat het focus keyword '{focus_keyword}' maximaal vijf keer voorkomt, verspreid over de tekst.\n\n"
+                        
+                        "Maak gebruik van de nieuwe werkwijze, met nadruk op gebruiksgemak en snelheid via de app. Zorg dat klanten worden aangemoedigd om deze te gebruiken."
+                        "\n\nPas de volgende stappen toe: "
+                        "1. Meld uw auto aan via de app."
+                        "2. Ontvang biedingen van gekwalificeerde dealers."
+                        "3. Kies het beste bod en accepteer het."
+                        "4. Rond de verkoop veilig af via de app.\n\n"
+                        "Herschrijf nu:\n\n"
+                        f"{combined_content}"
                     )}
                 ]
 
@@ -75,47 +108,16 @@ def rewrite_content(content, focus_keyword):
                     model="gpt-3.5-turbo",
                     messages=messages,
                     max_tokens=4000,
-                    temperature=0.7
+                    temperature=0.7,
                 )
                 rewritten_text = response.choices[0].message.content.strip()
                 rewritten_parts.append(rewritten_text)
 
             rewritten_content = ' '.join(rewritten_parts)
-            return add_focus_keyword(rewritten_content, focus_keyword)
+            return rewritten_content
 
         except Exception as e:
             print(f"Error rewriting content: {e}")
-            return content
-    return content
-
-# Functie om focus keyword in content te injecteren
-def add_focus_keyword(content, focus_keyword):
-    # Voeg het focus keyword toe op verschillende plekken in de tekst als het nog niet aanwezig is
-    if content.count(focus_keyword) < 3:
-        content += f"\n\n{focus_keyword}" * (3 - content.count(focus_keyword))
-    return content
-
-# Functie om content aan te vullen tot minimaal 500 woorden
-def fill_content(content):
-    if pd.notnull(content):
-        try:
-            while len(content.split()) < 500:
-                prompt = (
-                    "Maak de volgende tekst compleet tot 500 woorden, passend bij de inhoud: "
-                    f"\n\n{content}"
-                )
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=2000,
-                    temperature=0.7
-                )
-                additional_text = response.choices[0].message.content.strip()
-                content += " " + additional_text
-            return content
-
-        except Exception as e:
-            print(f"Error filling content: {e}")
             return content
     return content
 
@@ -199,11 +201,10 @@ for idx, row in df.iterrows():
         focus_keyword = generate_focus_keyword(row[column_title])
         df.at[idx, column_focus_keyword] = focus_keyword  # Sla de gegenereerde focus keyword op
     
-    # Content herschrijven, aanvullen en focus keyword toevoegen
+    # Content herschrijven en focus keyword toevoegen
     original_content = row[column_content]
     rewritten_content = rewrite_content(original_content, focus_keyword)
-    filled_content = fill_content(rewritten_content)
-    df.at[idx, column_content] = filled_content
+    df.at[idx, column_content] = rewritten_content  
 
     # Meta title en description genereren
     subject = row[column_meta_title] if pd.notnull(row[column_meta_title]) else "Geen onderwerp"
@@ -220,7 +221,6 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-output_file = 'herschreven_excel/autoinkoop/herschreven_autoinkoop_split_final_1.xlsx'
+output_file = 'herschreven_excel/autoinkoop/herschreven15.xlsx'
 df.to_excel(output_file, index=False)
-
-print("De content, meta titles en descriptions zijn herschreven en opgeslagen.")
+print(f"Verwerking voltooid! De herschreven data is opgeslagen in {output_file}")
