@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('excel/simpledeal/homcomproducten_1.xlsx')
+df = pd.read_excel('excel/simpledeal/homcomproducten_3.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -216,7 +216,7 @@ for index, row in df.iterrows():
     time.sleep(0.5)
    
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = 'herschreven_excel/simpledeal/homcomproducten_1.xlsx'
+output_file = 'herschreven_excel/simpledeal/homcomproducten_3.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
