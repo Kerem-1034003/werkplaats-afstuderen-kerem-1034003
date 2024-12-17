@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('excel/simpledeal/homcomproducten_3.xlsx')
+df = pd.read_excel('excel/simpledeal/homcomproducten_1.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -23,9 +23,11 @@ column_meta_title = 'meta:_yoast_wpseo_title'
 column_meta_description = 'meta:_yoast_wpseo_metadesc'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
 column_images = 'images'
+column_post_excerpt= 'post_excerpt'
 
 # Cast relevante kolommen naar strings om datatypeproblemen te voorkomen
 df[column_focus_keyword] = df[column_focus_keyword].astype(str)
+df[column_post_excerpt] = df[column_post_excerpt].astype(str)
 
 company_name = "Simpledeal"
 
@@ -97,6 +99,8 @@ def rewrite_product_title(post_title, focus_keyword):
     except Exception as e:
         print(f"Error rewriting product title: {e}")
         return post_title
+    
+
 
 # Functie voor de productbeschrijving
 def rewrite_product_content(post_content, focus_keyword, new_title):
@@ -189,6 +193,40 @@ def rewrite_product_content(post_content, focus_keyword, new_title):
     except Exception as e:
         print(f"Error rewriting product content: {e}")
         return post_content   
+    
+# Functie om een kort excerpt te genereren (max. 200 tekens en 3 zinnen)
+def generate_post_excerpt(post_content, focus_keyword):
+    try:
+        # Maak een prompt om een kort stuk tekst te genereren
+        prompt = f"""
+        Genereer een korte samenvatting van de volgende productbeschrijving. De samenvatting moet maximaal 200 tekens bevatten en maximaal 3 zinnen. Zorg ervoor dat het focus keyword '{focus_keyword}' erin voorkomt en dat het een duidelijke samenvatting van de productbeschrijving is.
+        Beschrijving: '{post_content}'
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=80  # Beperk het aantal tokens om onder de 200 tekens te blijven
+        )
+
+        excerpt = response.choices[0].message.content.strip()
+
+        # Split de excerpt in zinnen
+        sentences = excerpt.split('.')
+        
+        # Valideer de zinnen en beperk tot maximaal 3
+        if len(sentences) > 3:
+            sentences = sentences[:3]  # Houd alleen de eerste drie zinnen
+        
+        # Voeg een derde zin toe als de lengte onder 120 tekens ligt
+        post_excerpt = '. '.join(sentences).strip() + '.'
+        if len(post_excerpt) <= 120:
+            post_excerpt += " Bestel nu bij Simpledeal."
+
+        return post_excerpt
+    except Exception as e:
+        print(f"Error generating post excerpt: {e}")
+        return ""
 
 # Itereer door elke rij in de DataFrame
 for index, row in df.iterrows():
@@ -207,16 +245,20 @@ for index, row in df.iterrows():
     new_title = rewrite_product_title(post_title, focus_keyword)
     df.at[index, column_post_title] = new_title
 
-    # Stap 5: Productbeschrijving herschrijven
+    # Stap 4: Productbeschrijving herschrijven
     post_content = row[column_post_content]
     new_content = rewrite_product_content(post_content, focus_keyword, new_title)
     df.at[index, column_post_content] = new_content
+
+    # Stap 5: Genereer de post_excerpt
+    post_excerpt = generate_post_excerpt(post_content, focus_keyword)
+    df.at[index, column_post_excerpt] = post_excerpt 
 
     # Pauze tussen API-aanroepen om rate limits te respecteren
     time.sleep(0.5)
    
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = 'herschreven_excel/simpledeal/homcomproducten_3.xlsx'
+output_file = 'herschreven_excel/simpledeal/homcomproducten_1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
