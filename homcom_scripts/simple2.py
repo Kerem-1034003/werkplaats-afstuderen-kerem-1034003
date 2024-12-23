@@ -14,7 +14,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('herschreven_excel/simpledeal/homcomproducten_1.1.xlsx', dtype={'meta:_alg_ean': str})
+df = pd.read_excel('../herschreven_excel/simpledeal/orgineel1.xlsx', dtype={'meta:_alg_ean': str})
 
 column_post_name = 'post_name'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
@@ -22,6 +22,7 @@ column_meta_title = 'meta:_yoast_wpseo_title'
 column_meta_description = 'meta:_yoast_wpseo_metadesc'
 column_ean = 'meta:_alg_ean'
 column_gtin = 'meta:wpseo_global_identifier_values'
+column_post_title = 'post_title'
 
 company_name = "Simpledeal"
 
@@ -30,14 +31,17 @@ df[column_meta_description] = df[column_meta_description].astype(str)
 df[column_post_name] = df[column_post_name].astype(str)
 df[column_ean] = df[column_ean].astype(str)
 df[column_gtin] = df[column_gtin].astype(str)
+df[column_post_title] = df[column_post_title].astype(str)
 
-# Functie voor het herschrijven van de URL (post_name)
-def rewrite_post_name(focus_keyword, post_name, max_retries=3):
+# Functie voor het genereren van een slug
+def generate_slug(post_title, focus_keyword, max_retries=3):
     prompt = f"""
-    Herschrijf de URL '{post_name}' zodat deze begint met het focus keyword '{focus_keyword}', 
-    post name bevat maximaal 4-5 woorden en niet meer dan 70 karakters inclusief spaties. Gebruik alleen letters, cijfers, en koppeltekens.
-    Geen speciale tekens of slashes (/). Ook geen afmetingen of cijfers. 
-    Vertaal de url van het Duits naar correct Nederlands. 
+    Genereer een SEO-vriendelijke slug gebaseerd op de producttitel '{post_title}' en het focus keyword '{focus_keyword}'. 
+    De slug moet:
+    - Beginnen met het focus keyword.
+    - Bestaan uit maximaal 4-5 woorden en niet meer dan 70 karakters inclusief koppeltekens.
+    - Geen speciale tekens of slashes bevatten (alleen letters, cijfers en koppeltekens).
+    - Correct Nederlands zijn, zonder afmetingen of irrelevante cijfers.
     """
 
     for attempt in range(max_retries):
@@ -45,31 +49,26 @@ def rewrite_post_name(focus_keyword, post_name, max_retries=3):
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=100  # Beperk tot 50 tokens voor een compacte URL
+                max_tokens=50  # Beperk tot korte output
             )
-            # Verwijder ongewenste tekens en controleer lengte
-            new_post_name = response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+            # Verwerk de output naar een geldige slug
+            generated_slug = response.choices[0].message.content.strip()
+            generated_slug = re.sub(r"[^a-zA-Z0-9\- ]", "", generated_slug)  # Alleen letters, cijfers en koppeltekens
+            generated_slug = generated_slug.replace(" ", "-").lower()  # Vervang spaties door koppeltekens en lowercase
             
-            # Gebruik regex om alle tekens behalve alfanumerieke karakters en koppeltekens te verwijderen
-            new_post_name = re.sub(r"[^a-zA-Z0-9\- ]", "", new_post_name)
-            
-            # Vervang spaties door koppeltekens en maak de tekst geschikt voor URL
-            new_post_name = new_post_name.replace(" ", "-")
+            # Controleer lengte en beperk tot 4-5 woorden als het te lang is
+            if len(generated_slug) > 70:
+                words = generated_slug.split("-")
+                generated_slug = "-".join(words[:5])
 
-            # Controleer of de URL binnen de limiet van 70 karakters valt
-            if len(new_post_name) <= 70:
-                return new_post_name
-            else:
-                # Als de naam nog steeds te lang is, beperk tot de eerste 5 woorden
-                words = new_post_name.split("-")
-                new_post_name = "-".join(words[:5])
+            return generated_slug
 
         except Exception as e:
-            print(f"Error rewriting post name (attempt {attempt + 1}): {e}")
-            time.sleep(1)  
+            print(f"Error generating slug (attempt {attempt + 1}): {e}")
+            time.sleep(1)
 
-    # Als alle pogingen falen, geef het originele post_name terug
-    return post_name
+    # Als alle pogingen falen, maak een eenvoudige slug
+    return f"{focus_keyword}-{post_title[:50]}".lower().replace(" ", "-")
 
 # Functie voor het genereren van de meta title
 def generate_meta_title(focus_keyword):
@@ -186,27 +185,27 @@ def format_gtin_value(ean_value):
 for index, row in df.iterrows():
     print(f"Processing row {index + 1} of {len(df)}")
     
-    post_name = row[column_post_name]
+    post_title = row[column_post_title]
     focus_keyword = row[column_focus_keyword]
     
-    new_post_name = rewrite_post_name(focus_keyword, post_name)
+    # Genereer een nieuwe slug
+    new_post_name = generate_slug(post_title, focus_keyword)
     df.at[index, column_post_name] = new_post_name
 
+    # Huidige functies blijven hetzelfde
     new_meta_title = generate_meta_title(focus_keyword)
     df.at[index, column_meta_title] = new_meta_title
 
-    new_meta_description = generate_meta_description(row['post_title'], focus_keyword)
+    new_meta_description = generate_meta_description(post_title, focus_keyword)
     df.at[index, column_meta_description] = new_meta_description
-    
-    # Verwerken van EAN en het geformatteerde GTIN-resultaat
-    ean_value = row[column_ean]  
-    formatted_value = format_gtin_value(ean_value)  
 
-    # Voeg de geformatteerde waarde toe aan de meta:wpseo_global_identifier_values kolom
+    # Verwerken van EAN en GTIN
+    ean_value = row[column_ean]
+    formatted_value = format_gtin_value(ean_value)
     df.at[index, column_gtin] = formatted_value
 
 # Opslaan
-output_file = 'herschreven_excel/simpledeal/homcomproducten_final_1.xlsx'
+output_file = '../herschreven_excel/simpledeal/orgineel1.1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

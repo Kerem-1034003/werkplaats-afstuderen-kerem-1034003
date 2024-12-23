@@ -3,6 +3,8 @@ from openai import OpenAI
 import json
 from dotenv import load_dotenv
 import os
+from openpyxl import load_workbook
+from openpyxl.styles import Font
 
 # Laad de API-sleutel en JSON-categorieën
 load_dotenv()
@@ -12,11 +14,11 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # JSON-categorieën inlezen
-with open("updated_categorie_nested.json", "r") as f:
+with open("../updated_categorie_nested.json", "r") as f:
     categories = json.load(f)
 
 # Laad het productbestand
-df = pd.read_excel('herschreven_excel/import100.2.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/orgineel1.1.xlsx')
 
 # Functie om AI de categorie te laten bepalen
 def bepaal_categorie(post_title, post_content, json_cats):
@@ -26,7 +28,7 @@ Titel: {post_title}
 Beschrijving: {post_content}
 
 Gebruik de JSON-categorieën hieronder om het juiste categoriepad te bepalen voor dit product. Volg hierbij strikt de volgende stappen:
-Let goed op de specifieke termen zoals 'fietskar', 'kinderfietskar' en dergelijke.
+Let goed op de specifieke termen zoals 'fietskar', 'kinderfietskar' 'zonwering' 'parasol' en dergelijke.
 
 1. **Zoek de meest specifieke subsubcategorie**: Analyseer eerst welke subsubcategorie in de JSON het meest passend is voor het product. Maak een keuze die het product het best beschrijft.
 2. **Koppel de subsubcategorie aan de bijbehorende hoofdcategorie en subcategorie**: Zodra de subsubcategorie is bepaald, kijk in de JSON welke subcategorie en hoofdcategorie daarbij horen. Gebruik alleen de exacte hiërarchie zoals in de JSON gedefinieerd.
@@ -40,6 +42,8 @@ Let goed op de specifieke termen zoals 'fietskar', 'kinderfietskar' en dergelijk
    - Voeg geen extra uitleg, tekst of termen toe die niet in de JSON voorkomen.
    - Vermijd Engelse woorden of niet-geldige termen.
    - Voorbeeld: Baby & Kind>Babywereld>Fietskar
+   - voorbeeld Tuin>Zonwering>Zonwering
+   - voorbeeld Tuin>Parasols>Umbrella Stands
 
 JSON-categorieën:
 {json.dumps(json_cats, ensure_ascii=False, indent=2)}
@@ -99,4 +103,34 @@ for index, row in df.iterrows():
 df['tax:product_cat'] = categorie_paden
 
 # Sla het resultaat op in een nieuwe Excel
-df.to_excel("herschreven_excel/Final.xlsx", index=False)
+output_file = "../herschreven_excel/simpledeal/orgineel.xlsx"
+df.to_excel(output_file, index=False)
+
+print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
+
+# Kleur de cellen rood waar categorie "Onbekend>Onbekend>Onbekend" is
+from openpyxl import load_workbook
+from openpyxl.styles import Font
+
+# Open het Excel-bestand voor opmaak
+wb = load_workbook(output_file)
+ws = wb.active
+
+# Zoek de kolom met de categorieën
+category_column = None
+for col in ws.iter_cols(1, ws.max_column):
+    if col[0].value == "tax:product_cat":  # Zoek de kolomkop
+        category_column = col[0].column
+        break
+
+# Controleer de rijen en pas rode kleur toe als categorie "Onbekend>Onbekend>Onbekend" is
+if category_column:
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):  # Sla de koprij over
+        cell = row[category_column - 1]  # Kolomindex aanpassen naar 0-gebaseerde index
+        if cell.value == "Onbekend>Onbekend>Onbekend":
+            cell.font = Font(color="FF0000")  # Rode tekstkleur
+
+# Sla het bestand opnieuw op met de opmaak
+wb.save("../herschreven_excel/simpledeal/orgineel_colored.xlsx")
+
+print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
