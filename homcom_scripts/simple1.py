@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('excel/simpledeal/homcomproducten_1.xlsx')
+df = pd.read_excel('../excel/simpledeal/homcom/Map1.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -107,7 +107,7 @@ def rewrite_product_content(post_content, focus_keyword, new_title):
     try:
         prompt = f"""
         Schrijf een uitgebreide HTML-geformatteerde productbeschrijving van minimaal 300 woorden over het product '{new_title}', 
-        met headings en paragrafen.
+        met headings en paragrafen maak gebruik van <h3>, <h4>, <p>, <li> en <ul>, Ik wil verder geen enkele andere tags zien vooral geen <stong> of <div>.
         Gebruik '{focus_keyword}' maximaal 7 keer op een natuurlijk manier in de tekst. Als de limiet van 7 is bereikt, gebruik dan alternatieve formuleringen. 
         Beschrijf de functies, voordelen, en specificaties op een klantgerichte manier.
         Verbeter de volgende productbeschrijving zodat deze voldoet aan de volgende criteria:
@@ -258,7 +258,7 @@ for index, row in df.iterrows():
     time.sleep(0.5)
    
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = 'herschreven_excel/simpledeal/homcomproducten_1.xlsx'
+output_file = '../herschreven_excel/simpledeal/orgineel1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
