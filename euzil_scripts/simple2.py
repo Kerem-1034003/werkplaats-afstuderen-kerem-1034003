@@ -14,7 +14,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom1.xlsx', dtype={'meta:_alg_ean': str})
+df = pd.read_excel('../herschreven_excel/simpledeal/euzil/euzil1.xlsx', dtype={'meta:_alg_ean': str})
 
 column_post_name = 'post_name'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
@@ -205,7 +205,7 @@ for index, row in df.iterrows():
     df.at[index, column_gtin] = formatted_value
 
 # Opslaan
-output_file = '../herschreven_excel/simpledeal//homcom/homcom1.1.xlsx'
+output_file = '../herschreven_excel/simpledeal/euzil/euzil1.1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
