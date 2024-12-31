@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('../excel/simpledeal/homcom/Map1.xlsx')
+df = pd.read_excel('../excel/simpledeal/euzil/Map1.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'
@@ -25,9 +25,12 @@ column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
 column_images = 'images'
 column_post_excerpt= 'post_excerpt'
 
+description_columns = [f"Description {i}" for i in range(1, 6)]
+
 # Cast relevante kolommen naar strings om datatypeproblemen te voorkomen
 df[column_focus_keyword] = df[column_focus_keyword].astype(str)
 df[column_post_excerpt] = df[column_post_excerpt].astype(str)
+df[column_post_content] = df[column_post_content].astype(str)
 
 company_name = "Simpledeal"
 
@@ -105,6 +108,11 @@ def rewrite_product_title(post_title, focus_keyword):
 # Functie voor de productbeschrijving
 def rewrite_product_content(post_content, focus_keyword, new_title):
     try:
+
+        descriptions = " ".join([
+            str(row.get(col, "")).strip() for col in description_columns
+        ])
+
         prompt = f"""
         Schrijf een uitgebreide HTML-geformatteerde productbeschrijving van minimaal 300 woorden over het product '{new_title}', 
         met headings en paragrafen maak gebruik van <h3>, <h4>, <p>, <li> en <ul>, Ik wil verder geen enkele andere tags zien vooral geen <stong> of <div>.
@@ -116,8 +124,9 @@ def rewrite_product_content(post_content, focus_keyword, new_title):
         - Gebruik signaalwoorden (zoals 'daarom', 'hierdoor', 'bovendien', 'echter', 'ten slotte') in ten minste 30% van de zinnen.
         - Zorg ervoor dat de eerste heading een <h3>-tag is en de subkoppen een <h4>-tag.
         Ik verwacht een product beschrijving terug van minimaal 300 woorden. en niet onder 300 woorden. 
+        Ik verwacht de productomschrijving alleen in het Nederlands.
         
-        Gebruik de volgende beschrijving als uitgangspunt: '{post_content}'.
+        Gebruik de volgende beschrijving als uitgangspunt: '{descriptions}'.
         """
 
         response = client.chat.completions.create(
@@ -258,7 +267,7 @@ for index, row in df.iterrows():
     time.sleep(0.5)
    
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = '../herschreven_excel/simpledeal/homcom/homcom1.xlsx'
+output_file = '../herschreven_excel/simpledeal/euzil/euzil1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

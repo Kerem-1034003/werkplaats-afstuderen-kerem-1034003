@@ -3,11 +3,12 @@
         "Elektronica": [
             "Elektrische haarden",
             "Elektrische Kachels",
-            "Keukenapparaten"
+            "Keukenapparaten",
+            "Ethanol haarden",
+            "Open haard accesoires"
         ],
         "Banken": [
             "Bevenbanken",
-            "Blumenbank",
             "Hockers",
             "Hoekbanken",
             "Schoenenbanken",
@@ -43,8 +44,7 @@
             "Schommelstoel",
             "Stoelkrukken",
             "Zitballen",
-            "Barkrukken",
-            "Tuinstoelen"
+            "Barkrukken"
         ],
         "Tafels": [
             "Bartisch set",
@@ -71,76 +71,54 @@
             "Decoratief Rek",
             "Keukenplank",
             "Keukenrek",
-            "Keukenplank",
             "Schoenenrek",
             "Wandplanken"
         ],
         "Accessoires": [
             "Brievenbussen",
             "Fotostandaard",
-            "Beautycases",
+            "Toilettassen",
             "Fotolijsten",
             "Kapstok",
             "Horlogeboxen",
             "Sieredendozen",
             "Make-up organizers",
             "Make-up Spiegel",
-            "Vloerkleden"
-        ],
-        "Kantoor artikelen": [
-            "Kantoor artikelen"
-        ],
-        "Auto Accessoires": [
-            "Auto Accessoires"
+            "Vloerkleden",
+            "Paraplubak",
+            "Wasmand"
         ]
     },
     "Huishouden": {
-        "Opbergen": [
-            "Paraplubak",
-            "Boodschappentrolley",
+        "Kantoor":[
+            "Kantoor artikelen"
+        ],
+        "Auto":[
+            "Auto Accessoires"
+        ],
+        "Keuken":[
+            "Keukenkrukken",
             "Keukentrolley",
-            "Kledinghangers",
             "Kruidenrek",
-            "Opbergdozen",
-            "Opbergisten",
-            "Stellingkasten"
-        ],
-        "Gewone Systemen": [
-            "Gewone Systemen"
-        ],
-        "Zaagbokken": [
-            "Zaagbokken"
-        ],
-        "Kantoor ": [
-            "Kantoor "
-        ],
-        "Accessoires voor open haard": [
-            "Accessoires voor open haard"
-        ],
-        "Ethanolkamine": [
-            "Ethanolkamine"
-        ],
-        "Metal Detectors": [
-            "Metal Detectors"
-        ],
-        "Keukenkrukken": [
-            "Keukenkrukken"
-        ],
+            "Prullenbakken"
+        ], 
         "Handgereedschap": [
+            "Gewone Systemen",
+            "Zaagbokken",
             "Ladders",
             "Gereedschapskoffers",
             "Gereedschapsschuur",
             "Meetgereedschap",
-            "Detectieapparaten",
             "Metaaldetectors"
         ],
-        "Prullenbakken": [
-            "Prullenbakken"
+        "Opbergen": [
+            "Boodschappentrolley",
+            "Kledinghangers",            
+            "Opbergdozen",
+            "Opbergkisten",
+            "Stellingkasten"
         ],
-        "Afvalbak": [
-            "Afvalbak"
-        ],
-        "Reinigingsapparaten": [
+        "Schoonmaak": [
             "Reinigingsapparaten"
         ],
         "Rond het huis": [
@@ -148,41 +126,40 @@
             "Luifels",
             "Kamerverdeler",
             "Kunstplanten",
-            "Safes & Money Cassettes",
+            "Kluizen",
             "Schuifdeuren",
-            "Roller Blinds"
+            "Wand decoratie",
+            "Rol Gordijnen"
         ],
-        "Sackcarrow": [
-            "Sackcarrow"
-        ],
-        "Bolderkarren": [
-            "Bolderkarren"
-        ],
-        "Wasmand": [
-            "Wasmand"
+        "Steekwagen": [
+            "Bolderkarren",
+            "Steekwagens"
         ]
     },
     "Baby & Kind": {
-        "Babywereld": [
+        "Babybadkamer": [
             "Babybadjes",
-            "Fietskar"
+            "Babytoilet"
+        ],
+        "Fietskar":[
+            "Fietskar voor kinderen"
         ],
         "Buitenspeelgoed": [
-            "Kinderschommels",
-            "Wipwap",
-            "Kinderen Schommels",
             "Kinderglijbanen",
-            "Basketbalstandaards",
-            "Kindertrampoline",
-            "Kindersporten",
+            "Kinderschommels",
             "Speelhuisjes & Tenten",
             "Springkussens en waterkastelen",
             "Zandbakken & toebehoren"
         ],
+        "Kindersporten": [
+            "Basketbalstandaarts",
+            "Voetbaldoelen",
+            "Balansstenen",
+            "Kindertrampoline"
+        ],
         "Kindermeubels": [
             "Kinderzitmeubels",
             "Kinder Tafels",
-            "Kinderfauteuil",
             "Kinderplanken & Kinderkasten",
             "Leertoren"
         ],
@@ -211,18 +188,19 @@
             "Hondenhokken",
             "Hondenkooien",
             "Hondenzwembaden",
-            "Buggy van honden",
+            "Hondenbuggy",
+            "Manden",
             "Draagtassen",
-            "Autostolen voor honden",
-            "Fitters & Partitions van honden",
+            "Autostoelen voor honden",
+            "Beveiliging en behuizing van honden",
             "Hondentrappen",
-            "Hondenvolgers",
+            "Hondenkar",
             "Hondentraphekjes",
             "Puppy Training Pads",
-            "Trimtafels"
+            "Trimtafels",
+            "Voedingskommen"
         ],
         "Vogelaccessoires": [
-            "Kippenhokken",
             "Kippenhokken",
             "Vogelkooien"
         ],
@@ -232,69 +210,49 @@
             "Kattenbakken",
             "Krabpalen"
         ],
-        "Kleine kooien in kleine dieren": [
-            "Kraamen kleine dieren"
-        ],
-        "Manden": [
-            "Manden"
-        ],
-        "Voedingskommen": [
-            "Voedingskommen"
-        ],
-        "Konijnenkooien": [
-            "Konijnenkooien"
+        "Knaagdierenkooien": [
+            "Cvaiakooien",
+            "Konijnenkooien",
+            "Terrariums"
         ]
     },
     "Sport": {
-        "Aerobic step": [
-            "Aerobic step"
-        ],
-        "Badminton": [
+        "Sporten":[
+            "Basketbal",
+            "Darten",
+            "Gymnastiek en Yoga",
+            "Trampolines & Accessoires",
+            "Voetbaldoel",
+            "Watersport",
             "Badminton"
         ],
-        "Fitness & KraftSport": [
-            "Box Bag",
-            "Electric LooppLaatsen",
+        "Boksen":[
+            "Boksbal",
+            "Bokszak"
+        ],
+        "Fitness & Krachtsport": [
+            "Loopbanden",
             "Dumbbells",
             "Halters",
             "Fitnessmaterialen",
-            "Ergometer en home trainer"
+            "Ergometer en home trainer",
+            "Aerobic step"
         ],
-        "Ball Sports": [
-            "Ball Sports"
-        ],
-        "Gymnastiek & Yoga": [
-            "Gymnastiek & Yoga"
-        ],
-        "Elektronische darts": [
-            "Elektronische darts"
-        ],
-        "Bicycle -trailer": [
-            "Bicycle -accessoires",
-            "Fietskar voor kinderen",
+        "Fiets accessoires": [
+            "Fietsaanhangwagen",
+            "Helm",
             "Fietsmontagestandaard",
-            "Fietsbeugels"
-        ],
-        "Trampolines & Accessoires": [
-            "Trampolines & Accessoires"
-        ],
-        "Water Sport": [
-            "Water Sport"
-        ],
-        "Veldbedden": [
-            "Veldbedden"
+            "Fietsbeugel"
         ]
     },
     "Tuin": {
-        "Discipelen": [
-            "Discipelen"
-        ],
-        "Tuinkassen": [
-            "Tuinkassen"
+        "Tuinschuren en tuinkassen": [
+            "Tuinhuizen",
+            "Tuinkassen",
+            "Koude kassen"
         ],
         "Pavilion Daken": [
             "Paviljoens en feesttenten",
-            "Party Tents",
             "Pergola"
         ],
         "Grillen en verwarmen": [
@@ -303,44 +261,32 @@
             "Grills",
             "Vuurschalen"
         ],
-        "Kassen": [
-            "Gardenslangen",
-            "Bloemstands",
-            "Planten planken",
-            "Koude kassen",
-            "Plantenbakken",
+        "Tuin accessoires": [
+            "Tuinslangen",
             "Tuinwagen",
-            "Tuinzorg",
-            "Plantafels",
+            "Bijenteelt",
             "Tuincomposter",
-            "Bijenteelt"
+            "Tuinzorg"
         ],
         "Tuindecoratie": [
-            "Kunstgras",
-            "Garten-Sitzslagen",
             "Kunstgras",
             "Tuindeur",
             "Tuin Bruggen",
             "Plantenbak",
+            "Plant Tafels",
             "Decoratie",
             "Fontein",
             "Tuinpoorten",
-            "Tuinmeubelsets",
             "Rosenbogen",
             "Windschermen",
             "Privacy Protection & Art Hedges",
-            "Tuinverlichting",
-            "Tuinstoelen"
+            "Tuinverlichting"
         ],
         "Zonwering": [
-            "Zonwering"
-        ],
-        "Luifel": [
+            "Parasol",
+            "Parasol standaard",
+            "Parasol Hoes",
             "Luifel"
-        ],
-        "Parasols": [
-            "Umbrella Stands",
-            "Plan Cover for Parasols"
         ],
         "Camping": [
             "Campingstoelen",
@@ -348,13 +294,15 @@
             "Camping Tafel",
             "Tenten",
             "Kamperen en accessoires",
+            "Veldbedden",
             "Douchen en toiletkampen"
         ],
         "Tuinmeubels": [
             "Tuinbanken",
+            "Tuinstoelen",
             "Tuinmeubelhoezen",
             "Tuinmeubelen",
-            "Poly-rotan tuinmeubelen",
+            "Tuinmeubelsets",
             "Dekzeilen",
             "Loungemeubelen",
             "Ligstoelen",
