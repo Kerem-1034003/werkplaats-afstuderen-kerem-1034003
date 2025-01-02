@@ -15,7 +15,7 @@ client = OpenAI(api_key=openai_api_key)
 company_name = "Simpledeal"
 
 # Lees de Simpledeal Excel-bestand
-df = pd.read_excel('excel/simpledeal/Map1.xlsx')
+df = pd.read_excel('../excel/simpledeal/Map1.xlsx')
 
 # Zorg dat de `meta:_yoast_data` kolom tekst kan opslaan
 df['meta:_yoast_data'] = df['meta:_yoast_data'].astype(str)
@@ -145,5 +145,5 @@ for idx, row in df.iterrows():
     df.at[idx, 'meta:_yoast_data'] = meta_yoast_data
 
 # Opslaan naar een nieuw Excel-bestand
-df.to_excel('herschreven_excel/simpledeal/simpledealcat1.2.xlsx', index=False)
+df.to_excel('../herschreven_excel/simpledeal/simpledealcat1.2.xlsx', index=False)
 print("Verwerking voltooid en opgeslagen")

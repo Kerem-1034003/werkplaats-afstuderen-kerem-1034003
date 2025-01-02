@@ -12,7 +12,7 @@ openai_api_key_bkn = os.getenv('OPENAI_API_KEY')
 # Initialiseer de OpenAI client
 client = OpenAI(api_key=openai_api_key_bkn)
 
-df = pd.read_excel('excel/bkn-living/bknliving.xlsx')
+df = pd.read_excel('../excel/bkn-living/bknliving.xlsx')
 # Definieer de kolomnamen
 column_post_title = 'post_title'
 column_post_content = 'post_content'
@@ -249,12 +249,12 @@ for index, row in df.iterrows():
 
         # Sla tussentijdse resultaten op na elke 50 rijen om verlies van gegevens te voorkomen
     if (index + 1) % 50 == 0:
-        temp_output_file = f'herschreven_excel/bkn-living/temp_output_{index + 1}.xlsx'
+        temp_output_file = f'../herschreven_excel/bkn-living/temp_output_{index + 1}.xlsx'
         df.to_excel(temp_output_file, index=False)
         print(f"Tussentijdse resultaten opgeslagen in: {temp_output_file}")
 
 # Schrijf de resultaten naar een nieuw Excel-bestand
-output_file = 'herschreven_excel/bkn-living/updated_bknliving1.4.xlsx'
+output_file = '../herschreven_excel/bkn-living/updated_bknliving1.4.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
