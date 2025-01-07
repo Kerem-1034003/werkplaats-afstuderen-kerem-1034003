@@ -1,6 +1,5 @@
 import pandas as pd
 import json
-import openai
 import os
 
 # Gebruik de categorie en het Excel-bestand om de attributen toe te voegen en te vullen
@@ -9,6 +8,13 @@ excel_file = '../herschreven_excel/simpledeal/homcomsplit/output_Eetkamerstoelen
 # Laad je JSON-bestand met producten
 with open('../v10_datamodel_v10_nl.json', encoding='utf-8') as json_file:
     products_data = json.load(json_file)
+
+# Voorbeeld van een mapping-tabel: Excel-categorieën naar JSON-categorieën
+category_mapping = {
+    "Wonen>Stoelen>Eetkamerstoelen": "Eetkamerstoel",
+    "Wonen>Kasten>Nachtkastjes": "Kast",
+    # Voeg hier meer categorieën toe als nodig
+}
 
 # Functie om de vereiste attributen voor een productcategorie op te halen
 def get_required_attributes(category_name):
@@ -23,22 +29,40 @@ def get_required_attributes(category_name):
                 return required_attributes
     return None  # Return None als geen match gevonden
 
+# Functie om de juiste JSON-categorie te vinden op basis van de mapping
+def map_category(excel_category):
+    return category_mapping.get(excel_category, None)  # Retourneer None als er geen mapping is
+
 # Functie om het Excel-bestand bij te werken met de vereiste attributen als kolommen
-def update_excel_with_attributes(excel_file, category_name):
+def update_excel_with_attributes(excel_file):
     # Lees de Excel-bestand
     df = pd.read_excel(excel_file)
 
-    # Verkrijg de vereiste attributen voor de opgegeven categorie
-    required_attributes = get_required_attributes(category_name)
-
-    if not required_attributes:
-        print(f"Geen vereiste attributen gevonden voor categorie: {category_name}")
+    # Controleer of de categorie-kolom aanwezig is
+    if 'tax:product_cat' not in df.columns:
+        print("De kolom 'tax:product_cat' ontbreekt in het Excel-bestand.")
         return
 
-    # Maak kolommen aan voor de vereiste attributen in de DataFrame
-    for attribute in required_attributes:
-        if attribute not in df.columns:
-            df[attribute] = ''  # Voeg lege kolommen toe
+    # Loop door de rijen om de categorieën te verwerken
+    for index, row in df.iterrows():
+        excel_category = row['tax:product_cat']
+        json_category = map_category(excel_category)
+
+        if not json_category:
+            print(f"Geen mapping gevonden voor categorie: {excel_category}")
+            continue
+
+        # Haal de vereiste attributen op voor de gemapte categorie
+        required_attributes = get_required_attributes(json_category)
+
+        if not required_attributes:
+            print(f"Geen vereiste attributen gevonden voor JSON-categorie: {json_category}")
+            continue
+
+        # Voeg kolommen toe voor de vereiste attributen, indien nog niet aanwezig
+        for attribute in required_attributes:
+            if attribute not in df.columns:
+                df[attribute] = ''  # Voeg lege kolommen toe
 
     # Specificeer de directory voor het uitvoerbestand
     output_file = '../herschreven_excel/simpledeal/homcom/updated_eetkamerstoelen.xlsx'
@@ -51,8 +75,7 @@ def update_excel_with_attributes(excel_file, category_name):
     return output_file
 
 # Test de functie om het Excel-bestand bij te werken
-category_name = 'Eetkamerstoel'
-updated_file = update_excel_with_attributes(excel_file, category_name)
+updated_file = update_excel_with_attributes(excel_file)
 
 if updated_file:
     print(f"Het bestand is bijgewerkt en opgeslagen als {updated_file}")
