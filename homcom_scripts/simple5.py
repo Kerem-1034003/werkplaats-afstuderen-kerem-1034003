@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # Bestand inleiden
-df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom2.3.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom_simple2.xlsx')
 
 # Zorg ervoor dat de uitvoermap bestaat
 output_folder = '../herschreven_excel/simpledeal/split/'
