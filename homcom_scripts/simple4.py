@@ -14,7 +14,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom1.3.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom2.3.xlsx')
 
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
 column_images = 'images'
@@ -82,7 +82,7 @@ df = add_alt_text_to_images(
     focus_keyword_column=column_focus_keyword
 )
 
-output_file = '../herschreven_excel/simpledeal/homcom/homcom_simple.xlsx'
+output_file = '../herschreven_excel/simpledeal/homcom/homcom_simple2.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

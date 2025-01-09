@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Gebruik de categorie en het Excel-bestand om de attributen toe te voegen en te vullen
-excel_file = '../herschreven_excel/simpledeal/split/output_eetkamerstoelen.xlsx'  # Het bestand van de producten
+excel_file = '../herschreven_excel/simpledeal/split/output_euzil_Badkamerkast.xlsx'  # Het bestand van de producten
 
 # Laad je JSON-bestand met producten
 with open('../v10_datamodel_v10_nl.json', encoding='utf-8') as json_file:
@@ -25,7 +25,8 @@ category_mapping = {
     "Wonen>Kasten>Nachtkastjes": "Kast",
     "Sport>Fitness & Krachtsport>Aerobic step": "Aerobic stepper",
     "Huisdieren>Honden>Behendigheidspeelgoed": "Speelgoed voor dieren",
-    "Wonen>Stoelen>Bureaustoelen": "Bureaustoel"
+    "Wonen>Stoelen>Bureaustoelen": "Bureaustoel",
+    "Wonen>Kasten>Badkamerkast" : "Badkamerkast"
 
     # Voeg meer categorieën toe indien nodig
 }
@@ -138,7 +139,7 @@ def fill_attribute_values(excel_file):
                     df.at[index, attribute] = generated_value
 
     # Specificeer de directory voor het uitvoerbestand
-    output_file = '../herschreven_excel/simpledeal/homcomimport/updated_eetkamerstoelen.xlsx'
+    output_file = '../herschreven_excel/simpledeal/euzilimport/updated_badkamerkast.xlsx'
 
     # Bewaar de gewijzigde DataFrame naar het opgegeven bestand
     df.to_excel(output_file, index=False)
