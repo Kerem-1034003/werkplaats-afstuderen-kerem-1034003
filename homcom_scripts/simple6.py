@@ -12,12 +12,10 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 # Initialiseer de OpenAI client
 client = OpenAI(api_key=openai_api_key)
 
-# Gebruik de categorie en het Excel-bestand om de attributen toe te voegen en te vullen
-excel_file = '../herschreven_excel/simpledeal/split/output_eetkamerstoelen.xlsx'  # Het bestand van de producten
-
-# Laad je JSON-bestand met producten
-with open('../v10_datamodel_v10_nl.json', encoding='utf-8') as json_file:
-    products_data = json.load(json_file)
+# Bestanden en paden
+excel_file = '../herschreven_excel/simpledeal/split/output_eetkamerstoelen.xlsx'
+json_path = '../v10_datamodel_v10_nl.json'
+output_file = '../herschreven_excel/simpledeal/homcomimport/updated_eetkamerstoelen.xlsx'
 
 # Mapping-tabel: Excel-categorieën naar JSON-categorieën
 category_mapping = {
@@ -26,34 +24,63 @@ category_mapping = {
     "Sport>Fitness & Krachtsport>Aerobic step": "Aerobic stepper",
     "Huisdieren>Honden>Behendigheidspeelgoed": "Speelgoed voor dieren",
     "Wonen>Stoelen>Bureaustoelen": "Bureaustoel"
-
-    # Voeg meer categorieën toe indien nodig
 }
 
-# Functie om de vereiste attributen voor een productcategorie op te halen
-def get_required_attributes(category_name):
+# Functies
+
+def load_json_file(path):
+    try:
+        with open(path, encoding='utf-8') as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Fout bij het laden van JSON-bestand: {e}")
+        exit(1)
+
+def get_required_attributes(category_name, products_data):
     for category, products in products_data.items():
         for product in products:
-            if isinstance(product, dict) and 'name' in product and product['name'].lower() == category_name.lower():
-                required_attributes = [
-                    attribute['id'] for attribute in product.get('attributes', [])
-                    if attribute.get('enrichmentLevel') == 1
+            if isinstance(product, dict) and product.get('name', '').lower() == category_name.lower():
+                return [
+                    {
+                        'id': attr['id'],
+                        'lovId': attr.get('lovId')
+                    } 
+                    for attr in product.get('attributes', []) 
+                    if attr.get('enrichmentLevel') == 1
                 ]
-                return required_attributes
-    return None  # Return None als geen match gevonden
+    return []
 
-# Functie om de juiste JSON-categorie te vinden op basis van de mapping
-def map_category(excel_category):
-    return category_mapping.get(excel_category, None)  # Retourneer None als er geen mapping is
+def get_attribute_values(lov_id, products_data):
+    if not lov_id:
+        return None
+    for category, products in products_data.items():
+        for product in products:
+            if isinstance(product, dict) and product.get('id') == lov_id:
+                return product.get('values', [])
+    return None
 
-def generate_attribute_value(post_content, attribute_name):
+def generate_attribute_value(post_content, attribute_name, allowed_values=None):
     try:
-        prompt = f"""
-        Op basis van de volgende productomschrijving:
-        {post_content}
-        
-        Geef een waarde voor het attribuut '{attribute_name}'. Zorg dat de waarde kort, relevant en duidelijk is, zonder de kolomnaam of extra tekens zoals dubbele punt (:). Als het antwoord 'Ja' of 'Nee' is, gebruik dan 'Yes' of 'No' in het Engels. Zorg ervoor dat eenheden zoals 'cm' of 'sets' worden weggelaten en alleen de getallen behouden blijven.
-        """
+        if allowed_values:
+            prompt = f"""
+            Op basis van de volgende productomschrijving:
+            {post_content}
+
+            Kies een waarde voor het attribuut '{attribute_name}' uit de volgende lijst:
+            {', '.join(allowed_values)}
+
+            Geef één waarde, exact zoals in de lijst.
+            """
+        else:
+            prompt = f"""
+            Op basis van de volgende productomschrijving:
+            {post_content}
+
+            Geef een duidelijke, korte waarde voor het attribuut '{attribute_name}'.
+            Ik verwacht alleen de waarde als output en geen tekst ervoor
+            Vermijd eenheden zoals 'cm', 'sets' of andere beschrijvingen. Gebruik alleen relevante kernwaarden (zoals een getal, kleur of materiaal).
+            """
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
@@ -61,95 +88,77 @@ def generate_attribute_value(post_content, attribute_name):
             temperature=0.7
         )
 
-        # Haal de juiste waarde uit de API-respons
-        generated_value =  response.choices[0].message.content.strip().replace('"', '').replace("'", "")
+        value = response.choices[0].message.content.strip()
 
-        # Converteer 'Ja'/'Nee' naar 'Yes'/'No' als dat nodig is
-        if generated_value.lower() == 'ja':
-            generated_value = 'Yes'
-        elif generated_value.lower() == 'nee':
-            generated_value = 'No'
+        # Controleer of de waarde geldig is (indien allowed_values gedefinieerd is)
+        if allowed_values:
+            if value not in allowed_values:
+                print(f"Waarde '{value}' is ongeldig voor '{attribute_name}'. Probeer een fallback te kiezen.")
+                # Kies de meest relevante waarde uit allowed_values
+                # Hier gebruiken we simpelweg de eerste optie als fallback
+                return allowed_values[0] if allowed_values else ""
+        
+        # Return de gegenereerde waarde als deze geldig is of als er geen restricties zijn
+        return value
 
-        # Verwijder eenheden zoals 'cm' of 'sets' en behoud alleen getallen
-        generated_value = re.sub(r'\s*(cm|sets)\s*', '', generated_value)
-
-        return generated_value   
     except Exception as e:
         print(f"Fout bij het genereren van waarde voor {attribute_name}: {e}")
-        return ""
+        return f"Fout bij {attribute_name}"
 
 
-# Functie om het Excel-bestand bij te werken met de vereiste attributen als kolommen
-def fill_attribute_values(excel_file):
-    # Lees de Excel-bestand
-    df = pd.read_excel(excel_file)
+def map_category(excel_category):
+    return category_mapping.get(excel_category, None)
 
-    # Controleer of de categorie-kolom aanwezig is
+def fill_attribute_values(excel_file, products_data):
+    try:
+        df = pd.read_excel(excel_file)
+    except Exception as e:
+        print(f"Fout bij het lezen van het Excel-bestand: {e}")
+        return
+
     if 'tax:product_cat' not in df.columns:
         print("De kolom 'tax:product_cat' ontbreekt in het Excel-bestand.")
         return
 
-    # Voeg kolommen toe voor de vereiste attributen, indien nog niet aanwezig
+    all_attributes = set()
+    for category_name in df['tax:product_cat'].unique():
+        json_category = map_category(category_name)
+        if not json_category:
+            print(f"Geen mapping gevonden voor categorie: {category_name}")
+            continue
+
+        required_attributes = get_required_attributes(json_category, products_data)
+        all_attributes.update((attr['id'], attr['lovId']) for attr in required_attributes)
+
+    for attr_id, _ in all_attributes:
+        if attr_id not in df.columns:
+            df[attr_id] = ''
+
     for index, row in df.iterrows():
         excel_category = row['tax:product_cat']
         json_category = map_category(excel_category)
 
         if not json_category:
-            print(f"Geen mapping gevonden voor categorie: {excel_category}")
             continue
 
-        # Haal de vereiste attributen op voor de gemapte categorie
-        required_attributes = get_required_attributes(json_category)
-
-        if not required_attributes:
-            print(f"Geen vereiste attributen gevonden voor JSON-categorie: {json_category}")
-            continue
-
-        # Voeg kolommen toe voor de vereiste attributen, indien nog niet aanwezig
-        for attribute in required_attributes:
-            if attribute not in df.columns:
-                df[attribute] = ''  # Voeg lege kolommen toe
-
-    # Loop door de rijen om attributen te verwerken en waarden te genereren
-    for index, row in df.iterrows():
-        excel_category = row['tax:product_cat']
-        json_category = map_category(excel_category)
-
-        if not json_category:
-            print(f"Geen mapping gevonden voor categorie: {excel_category}")
-            continue
-
-        # Haal de vereiste attributen op voor de gemapte categorie
-        required_attributes = get_required_attributes(json_category)
-
-        if not required_attributes:
-            print(f"Geen vereiste attributen gevonden voor JSON-categorie: {json_category}")
-            continue
-
-        # Gebruik de productomschrijving (post_content) om de waarden te genereren
-        post_content = row['post_content'] if 'post_content' in row else ''
+        required_attributes = get_required_attributes(json_category, products_data)
+        post_content = row.get('post_content', '')
 
         for attribute in required_attributes:
-            if attribute in df.columns:
-                # Alleen invullen als het veld leeg is
-                if pd.isna(row[attribute]) or row[attribute] == "":
-                    generated_value = generate_attribute_value(post_content, attribute)
-                    print(f"Generated value for {attribute}: {generated_value}")  # Debugging
-                    df.at[index, attribute] = generated_value
+            attr_id = attribute['id']
+            lov_id = attribute.get('lovId')
 
-    # Specificeer de directory voor het uitvoerbestand
-    output_file = '../herschreven_excel/simpledeal/homcomimport/updated_eetkamerstoelen.xlsx'
+            if pd.isna(row[attr_id]) or row[attr_id] == "":
+                allowed_values = get_attribute_values(lov_id, products_data) if lov_id else None
+                generated_value = generate_attribute_value(post_content, attr_id, allowed_values)
+                df.at[index, attr_id] = generated_value
 
-    # Bewaar de gewijzigde DataFrame naar het opgegeven bestand
-    df.to_excel(output_file, index=False)
+    try:
+        df.to_excel(output_file, index=False)
+        print(f"Het bestand is bijgewerkt en opgeslagen als {output_file}")
+    except Exception as e:
+        print(f"Fout bij het opslaan van het Excel-bestand: {e}")
 
-    print(f"Het bestand is bijgewerkt met gegenereerde waarden en opgeslagen als {output_file}")
-
-    return output_file
-
-
-# Test de functie om het Excel-bestand bij te werken
-updated_file = fill_attribute_values(excel_file)
-
-if updated_file:
-    print(f"Het bestand is bijgewerkt en opgeslagen als {updated_file}")
+# Uitvoeren
+products_data = load_json_file(json_path)
+fill_attribute_values(excel_file, products_data)
