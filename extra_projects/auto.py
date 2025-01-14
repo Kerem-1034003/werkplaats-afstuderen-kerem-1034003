@@ -11,7 +11,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Excel bestand inlezen
-df = pd.read_excel('../excel/autoinkoop/autoinkoop_split_final_10.xlsx')
+df = pd.read_excel('../excel/autoinkoop/auto10.xlsx')
 
 column_content = 'Content'
 column_meta_title = '_yoast_wpseo_title'
@@ -85,7 +85,10 @@ def rewrite_content(content, focus_keyword):
 
                 messages = [
                     {"role": "user", "content": (
-                        "Herschrijf de volgende webpagina-inhoud voor AutoInkoopService.nl met de volgende eisen: "
+                        "Herschrijf de volgende webpagina-inhoud voor de nieuwe werkwijze van new.autoInkoopService.nl, Inclusief nieuwe app-stappen en verbeterde klantenservice. Ik verwacht een breed content per alinea. Dus behoud de woordenaantal per pagina. Ik verwacht niet dat je de woordenaantal verminderd."
+                        "De nieuwe werkwijze houd in dat we alle klanten naar ons app willen sturen door het te downloaden. Het moet niet mogelijk zijn om naar kantoor te komen, website te gebruiken of telefonisch contact op te nemen voor het procedure. Dus moet de content erop aangepast worden en de klant leiden naar het nieuwe app"
+                        "Bestudeer de nieuwe website goed en schrijf de content daarop gebaseerd de nieuwe werkwijze moet overal in de content voorkomen en het oude werkwijze moet helemaal herschreven woorden naar het nieuwe werkwijze."
+                        "Behoud de originele HTML-structuur en de Alinea-indeling, inclusief alinea's (<p>), koppen (<h2>, <h3>, <h4>), en opsommingen (<ul>, <li>). "
                         "1. Behoud de originele hoeveelheid woorden per alinea. De herschreven tekst mag niet minder woorden per alinea bevatten dan het origineel. "
                         "2. Gebruik een enkele <h1> voor de eerste kop,\n"
                         "3. Gebruik <h2>, <h3>, enzovoort voor subkoppen afhankelijk van de hiërarchie.\n"
@@ -93,13 +96,18 @@ def rewrite_content(content, focus_keyword):
                         f"5. Gebruik het focus keyword '{focus_keyword}' in de koptekst (bijvoorbeeld <h1>) en integreer het natuurlijk in de eerste paragraaf. "
                         f"6. Zorg ervoor dat het focus keyword '{focus_keyword}' maximaal vijf keer voorkomt, verspreid over de tekst.\n\n"
                         
-                        "Maak gebruik van de nieuwe werkwijze, met nadruk op gebruiksgemak en snelheid via de app. Zorg dat klanten worden aangemoedigd om deze te gebruiken."
-                        "\n\nPas de volgende stappen toe: "
-                        "1. Meld uw auto aan via de app."
-                        "2. Ontvang biedingen van gekwalificeerde dealers."
-                        "3. Kies het beste bod en accepteer het."
-                        "4. Rond de verkoop veilig af via de app.\n\n"
-                        "Herschrijf nu:\n\n"
+                        "Zorg ervoor dat de tekst leesbaar blijft en dat het focus keyword op een natuurlijke manier wordt geïntegreerd. "
+                        "Vermijd overmatige herhaling van het keyword. Zorg ervoor dat de tekst goed geoptimaliseerd is voor zoekmachines, maar de leesbaarheid voor de gebruiker blijft behouden. "
+                        "Pas de nieuwe werkwijze toe waar relevant, waarbij klanten worden aangemoedigd om de app te downloaden voor het aanmelden van auto's. "
+                        "Maak gebruik van <h2> en <h3> voor belangrijke secties, en <p> voor paragrafen."
+                        "herschrijf de inhoud zodanig dat het de nieuwe stappen weerspiegelt maximaal 1 keer in de content:"
+                                "\n1. Meld uw auto aan via de app."
+                                "\n2. Ontvang biedingen van gekwalificeerde dealers."
+                                "\n3. Kies het beste bod en accepteer het."
+                                "\n4. Rond de verkoop veilig af via de app."
+                        "Gebruik specifieke Call-to-Actions (CTA's) zoals 'Download de app' en leg de nadruk op gebruiksgemak en snelheid van het proces. "
+                        "Er mag geen tekst staan dat we een nieuwe werkwijze hebben alleen de herschrijving naar de nieuwe werkwijze"
+                        "Ik verwacht geen enkel tekst over de oude werkwijze. bekijk elke pagina goed en implementeer de nieuwe werkwijze op de jusite manier."
                         f"{combined_content}"
                     )}
                 ]
@@ -221,6 +229,6 @@ df[column_meta_title] = new_meta_titles
 df[column_meta_description] = new_meta_descriptions
 
 # Sla de gewijzigde DataFrame op in een nieuw Excel-bestand
-output_file = '../herschreven_excel/autoinkoop/autoinkoop_split_final_10.xlsx'
+output_file = '../herschreven_excel/autoinkoop/auto5.xlsx'
 df.to_excel(output_file, index=False)
 print(f"Verwerking voltooid! De herschreven data is opgeslagen in {output_file}")
