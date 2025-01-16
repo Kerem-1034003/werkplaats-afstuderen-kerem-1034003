@@ -18,7 +18,7 @@ with open("../updated_categorie_nested.json", "r") as f:
     categories = json.load(f)
 
 # Laad het productbestand
-df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom2.1.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/simpledeal/script2_part1.xlsx')
 
 # Functie om AI de categorie te laten bepalen
 def bepaal_categorie(post_title, post_content, json_cats):
@@ -103,7 +103,7 @@ for index, row in df.iterrows():
 df['tax:product_cat'] = categorie_paden
 
 # Sla het resultaat op in een nieuwe Excel
-output_file = "../herschreven_excel/simpledeal/homcom/homcom2.2.xlsx"
+output_file = "../herschreven_excel/simpledeal/simpledeal/script3_part1.xlsx"
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)
@@ -131,6 +131,6 @@ if category_column:
             cell.font = Font(color="FF0000")  # Rode tekstkleur
 
 # Sla het bestand opnieuw op met de opmaak
-wb.save("../herschreven_excel/simpledeal/homcom/homcom2.3.xlsx")
+wb.save("../herschreven_excel/simpledeal/simpledeal/script3.1_part1.xlsx")
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

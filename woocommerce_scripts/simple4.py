@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('../excel/simpledeal/homcom1/map1.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/simpledeal/script3_part1.xlsx')
 
 column_images = 'images'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
@@ -75,7 +75,7 @@ df = generate_and_add_alt_text(
     focus_keyword_column=column_focus_keyword
 )
 
-output_file = '../herschreven_excel/simpledeal/homcom/map_simple2.xlsx'
+output_file = '..herschreven_excel/simpledeal/simpledeal/script4_part1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

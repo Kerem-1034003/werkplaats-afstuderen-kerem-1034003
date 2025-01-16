@@ -2,10 +2,10 @@ import pandas as pd
 import os
 
 # Bestand inleiden
-df = pd.read_excel('../herschreven_excel/simpledeal/homcom/homcom_simple2.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/simpledeal/script4_part1.xlsx')
 
 # Zorg ervoor dat de uitvoermap bestaat
-output_folder = '../herschreven_excel/simpledeal/split/'
+output_folder = '../herschreven_excel/simpledeal/simpledealsplit/'
 os.makedirs(output_folder, exist_ok=True)
 
 # Splitsen op basis van de 'tax:product_cat' kolom

@@ -15,7 +15,7 @@ client = OpenAI(api_key=openai_api_key)
 # Bestanden en paden
 excel_file = '../herschreven_excel/simpledeal/split/output_eetkamerstoelen.xlsx'
 json_path = '../v10_datamodel_v10_nl.json'
-output_file = '../herschreven_excel/simpledeal/homcomimport/updated_eetkamerstoelen.xlsx'
+output_file = '../herschreven_excel/simpledeal/simpledealimport/updated_eetkamerstoelen.xlsx'
 
 # Mapping-tabel: Excel-categorieën naar JSON-categorieën
 category_mapping = {
