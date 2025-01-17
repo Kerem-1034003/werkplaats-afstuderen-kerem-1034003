@@ -75,7 +75,7 @@ df = generate_and_add_alt_text(
     focus_keyword_column=column_focus_keyword
 )
 
-output_file = '..herschreven_excel/simpledeal/simpledeal/script4_part1.xlsx'
+output_file = '../herschreven_excel/simpledeal/simpledeal/script4_part1.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

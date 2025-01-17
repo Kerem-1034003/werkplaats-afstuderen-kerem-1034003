@@ -5,25 +5,242 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import re
 
+# Laad API-sleutels
 load_dotenv()
-
 openai_api_key = os.getenv('OPENAI_API_KEY')
 
 # Initialiseer de OpenAI client
 client = OpenAI(api_key=openai_api_key)
 
-# Bestanden en paden
-excel_file = '../herschreven_excel/simpledeal/split/output_eetkamerstoelen.xlsx'
+# Paden voor input en output bestanden
+input_folder = '../herschreven_excel/simpledeal/simpledealsplit/'  # Map met input Excel-bestanden
+output_folder = '../herschreven_excel/simpledeal/simpledealimport/'  # Map voor output-bestanden
 json_path = '../v10_datamodel_v10_nl.json'
-output_file = '../herschreven_excel/simpledeal/simpledealimport/updated_eetkamerstoelen.xlsx'
+os.makedirs(output_folder, exist_ok=True)  # Zorg ervoor dat de outputmap bestaat
 
 # Mapping-tabel: Excel-categorieën naar JSON-categorieën
 category_mapping = {
-    "Wonen>Stoelen>Eetkamerstoelen": "Eetkamerstoel",
-    "Wonen>Kasten>Nachtkastjes": "Kast",
-    "Sport>Fitness & Krachtsport>Aerobic step": "Aerobic stepper",
-    "Huisdieren>Honden>Behendigheidspeelgoed": "Speelgoed voor dieren",
-    "Wonen>Stoelen>Bureaustoelen": "Bureaustoel"
+    'Wonen>Elektronica>Elektrische haarden': 'Sfeerhaard',
+    'Wonen>Elektronica>Elektrische Kachels': 'Kachel',
+    'Wonen>Elektronica>Ethanol haarden': 'Sfeerhaard',
+    'Wonen>Elektronica>Open haard accessoires': 'Kachel accessoire',
+
+    'Wonen>Banken>Bevenbanken': 'Bed',
+    'Wonen>Banken>Hockers': 'Hocker',
+    'Wonen>Banken>Hoekbanken': 'Bank',
+    'Wonen>Banken>Schoenenbanken': 'Schoenenkast',
+    'Wonen>Banken>Slaapbank': 'Bed',
+    'Wonen>Banken>Zitbank': 'Bank',
+
+    'Wonen>Bedden>Gastbed': 'Bed',
+    'Wonen>Bedden>Stapelbed': 'Bed',
+
+    'Wonen>Kasten>Archiefkast': 'Kast',
+    'Wonen>Kasten>Keukenkasten': 'Keukenkast',
+    'Wonen>Kasten>Medicijnkastje': 'Badkamerkast',
+    'Wonen>Kasten>Opbergkasten': 'Kast',
+    'Wonen>Kasten>Schoenenkast': 'Schoenenkas',
+    'Wonen>Kasten>Boekenkast': 'Kast',
+    'Wonen>Kasten>Kledingkast': 'Kast',
+    'Wonen>Kasten>Nachtkastjes': 'Kast',
+    'Wonen>Kasten>Sieradenkasten': 'Sieradenopberger',
+    'Wonen>Kasten>Stellingkasten': 'Kast',
+    'Wonen>Kasten>TV-meubels': 'Kast',
+    'Wonen>Kasten>Spiegelkasten': 'Badkamerkast',
+    'Wonen>Kasten>Badkamerkast': 'Badkamerkast',
+
+    'Wonen>Stoelen>Bureaustoelen': 'Bureaustoel',
+    'Wonen>Stoelen>Eetkamerstoelen': 'Eetkamerstoel',
+    'Wonen>Stoelen>Fauteuil': 'Fauteuil',
+    'Wonen>Stoelen>Gamingstoel': 'Bureaustoel',
+    'Wonen>Stoelen>Hangstoel': 'Hangstoel',
+    'Wonen>stoelen>Massagestoelen': 'Fauteuil',
+    'Wonen>Stoelen>Schommelstoel': 'Schommelstoel',
+    'Wonen>Stoelen>Stoelkrukken': 'Krukje',
+    'Wonen>Stoelen>Barkrukken': 'Barkruk',
+    'Wonen>Stoelen>Zitballen': 'Zitbal',
+
+    'Wonen>Tafels>Bartisch set': 'Tafel',
+    'Wonen>Tafels>Bartafels': 'Tafel',
+    'Wonen>Tafels>Bijzettafels': 'Tafel',
+    'Wonen>Tafels>Eettafels': 'Tafel',
+    'Wonen>Tafels>Bureaus': 'Bureau',
+    'Wonen>Tafels>Eethoeken': 'Set tafel en stoelen',
+    'Wonen>Tafels>Hoekstafels': 'Tafel',
+    'Wonen>Tafels>Consoletafels': 'Tafel',
+    'Wonen>Tafels>Koffie en Bijzettafels': 'Tafel',
+    'Wonen>Tafels>Klaptafel': 'Tafel',
+    'Wonen>Tafels>Massagetafels': 'Massagetafel',
+    'Wonen>Tafels>Salontafels': 'Tafel',
+    'Wonen>Tafels>Serveerwagen': 'Keukentrolley',
+
+    'Wonen>Verlichting>Plafondlampen': 'Plafonnière',
+    'Wonen>Verlichting>Staandelampen': 'Staande lamp',
+    'Wonen>Verlichting>Tafellampen': 'Tafellamp',
+
+    'Wonen>Planken & Rekken>Badkamerplank': 'Badkamerrek',
+    'Wonen>Planken & Rekken>Boekenplank': 'Boekenplank',
+    'Wonen>Planken & Rekken>Schoenenrek': 'Schoenenopbergers',
+    'Wonen>Planken & Rekken>Wandplanken': 'Wandrek',
+
+    'Wonen>Accessoires>Brievenbussen': 'Brievenbus',
+    'Wonen>Accessoires>Toilettassen': 'Toilettas',
+    'Wonen>Accessoires>Fotolijsten': 'Fotolijst',
+    'Wonen>Accessoires>Horlogeboxen': 'Horlogedoos',
+    'Wonen>Accessoires>Sieradendozen': 'Sieradenopberger',
+    'Wonen>Accessoires>Make-up organizers': 'Make-up organizer',
+    'Wonen>Accessoires>Make-up Spiegel': 'Make-upspiegel',
+    'Wonen>Accessoires>Vloerkleden': 'Vloerkleed',
+    'Wonen>Accessoires>Paraplubak': 'Paraplubakhouder',
+    'Wonen>Accessoires>Wasmand': 'Wasmand',
+
+    'Huishouden>Keuken>Keukenkrukken': 'Keukenkruk',
+    'Huishouden>Keuken>Keukentrolley': 'Keukentrolley',
+    'Huishouden>Keuken>Kruidenrek': 'Kruidenrek',
+    'Huishouden>Keuken>Prullenbakken': 'Prullenbak',
+
+    'Huishouden>Handgereedschap>Zaagbokken': 'Zaagbok',
+    'Huishouden>Handgereedschap>Ladders': 'Ladder',
+    'Huishouden>Handgereedschap>Gereedschapskoffers': 'Gereedschapskoffer',
+    'Huishouden>Handgereedschap>Gereedschapskist': 'Gereedschapskist',
+    'Huishouden>Handgereedschap>Gereedschapswanden': 'Gereedschapswand',
+    'Huishouden>Handgereedschap>Gereedschapskarren': 'Gereedschapskar',
+    'Huishouden>Handgereedschap>Metaaldetectors': 'Detectieapparaat',
+
+    'Huishouden>Opbergen>Boodschapentrolley': 'Boodschapentrolley',
+    'Huishouden>Opbergen>Kledinghangers': 'Kledinghanger',
+    'Huishouden>Opbergen>Opbergdozen': 'Opberger',
+    'Huishouden>Opbergen>Opbergkisten': 'Opberger',
+    'Huishouden>Opbergen>Stellingkasten': 'Kast',
+
+    'Huishouden>Rond het huis>Fittingen in de schuifdeur': 'Schuifdeuronderdeel',
+    'Huishouden>Rond het huis>Luifels': 'Luifel',
+    'Huishouden>Rond het huis>Kamerverdeler': 'Kamerscherm',
+    'Huishouden>Rond het huis>Kunstplanten': 'Kunstplant',
+    'Huishouden>Rond het huis>Kluizen': 'Kassakluis',
+    'Huishouden>Rond het huis>Schuifdeuren': 'Deur',
+    'Huishouden>Rond het huis>Rol Gordijnen': 'Rolgordijn',
+
+    'Huishouden>Steekwagen>Boderkarren': 'Bolderkar',
+    'Huishouden>Steekwagen>Steekwagens': 'Steekwagen',
+
+    'Baby & Kind>Babybadkamer>Babybadjes': 'Babybadje',
+    'Baby & Kind>Babybadkamer>Babytoilet': 'Plaspot',
+
+    'Baby & Kind>Fietskar>Fietskar voor kinderen': 'Fietskar',
+
+    'Baby & Kind>Buitenspeelgoed>Kinderglijbanen': 'Glijbaan',
+    'Baby & Kind>Buitenspeelgoed>Kinderschommels': 'Schommel',
+    'Baby & Kind>Buitenspeelgoed>Speelhuisjes & Tenten': 'Speelhuis',
+    'Baby & Kind>Buitenspeelgoed>Springkussens en waterkastelen': 'Springkussen',
+    'Baby & Kind>Buitenspeelgoed>Zandbakken & toebehoren': 'Zandbak',
+
+    'Baby & Kind>Kindersporten>Basketbalstandaarts': 'Basketbalstandaard',
+    'Baby & Kind>Kindersporten>Voetbaldoelen': 'Voetbaldoel',
+    'Baby & Kind>Kindersporten>Balansstenen': 'Balansspeelgoed',
+    'Baby & Kind>Kindersporten>Kindertrampoline': 'Trampoline',
+
+    'Baby & Kind>Kindermeubels>Kinderzitmeubels': 'Bank',
+    'Baby & Kind>Kindermeubels>Kinder Tafels': 'Tafel',
+    'Baby & Kind>Kindermeubels>Kinderplanken & Kinderkasten': 'Kast',
+    'Baby & Kind>Kindermeubels>Leertoren': 'Leertoren',
+
+    'Baby & Kind>Kindervoertuigen>Driewielers': 'Driewieler',
+    'Baby & Kind>Kindervoertuigen>Steps': 'Step',
+    'Baby & Kind>Kindervoertuigen>Loopfietsen': 'Loopfiets',
+    'Baby & Kind>Kindervoertuigen>Scooter': 'Scooter (elektrisch)',
+    'Baby & Kind>Kindervoertuigen>Skelters': 'Skelter',
+
+    'Baby & Kind>Speelgoed>Poppenhuizen': 'Poppenhuis',
+    'Baby & Kind>Speelgoed>Puzzelmatten': 'Puzzelmat',
+    'Baby & Kind>Speelgoed>Schommelende dieren': 'Hobbelfiguur',
+    'Baby & Kind>Speelgoed>Speelbouwstenen': 'Constructiespeelgoed',
+
+    'Huisdieren>Honden>Behendigheidspeelgoed': 'Speelgoed voor dieren',
+    'Huisdieren>Honden>Hondenbed': 'Dierenmand',
+    'Huisdieren>Honden>Hondenhokken': 'Hok',
+    'Huisdieren>Honden>Hondenkooien': 'Autostoel voor dieren',
+    'Huisdieren>Honden>Hondenzwembaden': 'Zwembad',
+    'Huisdieren>Honden>Manden': 'Dierenmand',
+    'Huisdieren>Honden>Draagtassen': 'Draagtas',
+    'Huisdieren>Honden>Autostoelen voor honden': 'Autostoel voor dieren',
+    'Huisdieren>Honden>Beveiling en behuizing van honden': 'Veiligheidshekje',
+    'Huisdieren>Honden>Hondentrappen': 'Loopplank voor dieren',
+    'Huisdieren>Honden>Hondenkar': 'Fietskar',
+    'Huisdieren>Honden>Hondentraphekjes': 'Veiligheidshekje',
+    'Huisdieren>Honden>Puppy Training Pads': 'Zindelijkheidstraining',
+    'Huisdieren>Honden>Trimtafels': 'Trimtafel',
+    'Huisdieren>Honden>Voedingskommen': 'Voerbak',
+
+    'Huisdieren>Vogelaccessoires>Kippenhokken': 'Hok',
+    'Huisdieren>Vogelaccessoires>Vogelkooien': 'Kooi',
+
+    'Huisdieren>Katten>Katspeelgoed': 'Speelgoed voor dieren',
+    'Huisdieren>Katten>Kattenbakken': 'Kattenbak',
+    'Huisdieren>Katten>Krabpalen': 'Krabpaal',
+
+    'Huisdieren>Knaagdierenkooien>Caviakooien': 'Kooi',
+    'Huisdieren>Knaagdierenkooien>Konijnenkooien': 'Kooi',
+    'Huisdieren>Knaagdierenkooien>Terrariums': 'Terrarium',
+
+    'Sport>Sporten>Basketbal': 'Basketbal',
+    'Sport>Sporten>Darten': 'Dartbord',
+    'Sport>Sporten>Gymanstiek en Yoga': 'Yogabal',
+    'Sport>Sporten>Trampolines en accesoires': 'Trampoline',
+    'Sport>Sporten>Voetbaldoel': 'Voetbaldoel',
+    'Sport>Sporten>Badminton': 'Badmintonracket',
+
+    'Sport>Boksen>Boksbal': 'Boksbal',
+    'Sport>Boksen>Bokszak': 'Bokszak',
+
+    'Sport>Fitness & Krachtsport>Loopbanden': 'Loopband',
+    'Sport>Fitness & Krachtsport>Dumbells': 'Dumbbells',
+    'Sport>Fitness & Krachtsport>Halters': 'Dumbbells',
+    'Sport>Fitness & Krachtsport>Fitnessmaterialen': 'Accessoires voor fitnessapparatuur',
+    'Sport>Fitness & Krachtsport>Ergometer en home trainer': 'Hometrainer',
+    'Sport>Fitness & Krachtsport>Aerobic step': 'Aerobic stepper',
+
+    'Sport>Fiets accessoires>Fietsaanhangwagen': 'Fietskar',
+    'Sport>Fiets accessoires>Helm': 'Sporthelm',
+    'Sport>Fiets accessoires>Fietsmontagestandaard': 'Montagestandaard',
+    'Sport>Fiets accessoires>Fietsbeugel': 'Fietsbeugel',
+
+    'Tuin>Tuinschuren en tuinkassen>Tuinhuizen': 'Tuinhuis',
+    'Tuin>Tuinschuren en tuinkassen>Tuinkassen': 'Kas',
+    'Tuin>Tuinschuren en tuinkassen>Koude kassen': 'Moestuinbak',
+
+    'Tuin>Pavilion Daken>Paviljoens en feesttenten': 'Partytent',
+    'Tuin>Pavilion Daken>Pergola': 'Overkapping',
+
+    'Tuin>Grillen en verwarmen>Straalkachels': 'Kachel',
+    'Tuin>Grillen en verwarmen>Grill Pavilions': 'Partytent',
+    'Tuin>Grillen en verwarmen>Grills': 'Barbecue',
+    'Tuin>Grillen en verwarmen>Vuurschalen': 'Vuurschaal',
+
+    'Tuin>Tuin accessoires>Tuinslangen': 'Tuinslang',
+    'Tuin>Tuin accessoires>Tuinwagen': 'Tuinkar',
+    'Tuin>Tuin accessoires>Tuincomposter': 'Potgrond',
+
+    'Tuin>Tuindecoratie>Kunstgras': 'Kunstgras',
+    'Tuin>Tuindecoratie>Tuin Bruggen': 'Loopbrug',
+    'Tuin>Tuindecoratie>Plantenbak': 'Plantenbak',
+    'Tuin>Tuindecoratie>Plant Tafels': 'Plantentafel',
+    'Tuin>Tuindecoratie>Fontein': 'Fontein',
+    'Tuin>Tuindecoratie>Tuinpoorten': 'Tuinpoort',
+    'Tuin>Tuindecoratie>Windschermen': 'Tuinscherm',
+    'Tuin>Tuindecoratie>Privacy Protection & Art Hedges': 'Tuinhek',
+    'Tuin>Tuindecoratie>Tuinverlichting': 'Padverlichting',
+
+    'Tuin>Zonwering>Parasol': 'Parasol',
+    'Tuin>Zonwering>Parasol standaard': 'Parasolvoet',
+    'Tuin>Zonwering>Parasol Hoes': 'Tuinmeubelhoes',
+    'Tuin>Zonwering>Luifel': 'Luifel',
+
+    'Tuin>Camping>Campingstoelen': 'Campingstoel',
+    'Tuin>Camping>Campingbed': 'Campingbedje',
+    'Tuin>Camping>Camping tafel': 'Campingtafel',
+    'Tuin>Camping>Veldbedden': 'Campingbedje',
+    'Tuin>Camping>Douchen en toiletkampen': 'Campingdouche'
 }
 
 # Functies
@@ -77,7 +294,7 @@ def generate_attribute_value(post_content, attribute_name, allowed_values=None):
             {post_content}
 
             Geef een duidelijke, korte waarde voor het attribuut '{attribute_name}'.
-            Ik verwacht alleen de waarde als output en geen tekst ervoor
+            Ik verwacht alleen de waarde als output en geen tekst ervoor.
             Vermijd eenheden zoals 'cm', 'sets' of andere beschrijvingen. Gebruik alleen relevante kernwaarden (zoals een getal, kleur of materiaal).
             """
 
@@ -91,33 +308,29 @@ def generate_attribute_value(post_content, attribute_name, allowed_values=None):
         value = response.choices[0].message.content.strip()
 
         # Controleer of de waarde geldig is (indien allowed_values gedefinieerd is)
-        if allowed_values:
-            if value not in allowed_values:
-                print(f"Waarde '{value}' is ongeldig voor '{attribute_name}'. Probeer een fallback te kiezen.")
-                # Kies de meest relevante waarde uit allowed_values
-                # Hier gebruiken we simpelweg de eerste optie als fallback
-                return allowed_values[0] if allowed_values else ""
+        if allowed_values and value not in allowed_values:
+            print(f"Waarde '{value}' is ongeldig voor '{attribute_name}'.")
+            return allowed_values[0] if allowed_values else ""
         
-        # Return de gegenereerde waarde als deze geldig is of als er geen restricties zijn
         return value
 
     except Exception as e:
         print(f"Fout bij het genereren van waarde voor {attribute_name}: {e}")
         return f"Fout bij {attribute_name}"
-
+    
 
 def map_category(excel_category):
     return category_mapping.get(excel_category, None)
 
-def fill_attribute_values(excel_file, products_data):
+def fill_attribute_values(file_path, products_data):
     try:
-        df = pd.read_excel(excel_file)
+        df = pd.read_excel(file_path)
     except Exception as e:
-        print(f"Fout bij het lezen van het Excel-bestand: {e}")
+        print(f"Fout bij het lezen van het Excel-bestand {file_path}: {e}")
         return
 
     if 'tax:product_cat' not in df.columns:
-        print("De kolom 'tax:product_cat' ontbreekt in het Excel-bestand.")
+        print(f"De kolom 'tax:product_cat' ontbreekt in {file_path}.")
         return
 
     all_attributes = set()
@@ -153,12 +366,19 @@ def fill_attribute_values(excel_file, products_data):
                 generated_value = generate_attribute_value(post_content, attr_id, allowed_values)
                 df.at[index, attr_id] = generated_value
 
+    output_file = os.path.join(output_folder, os.path.basename(file_path))
     try:
         df.to_excel(output_file, index=False)
-        print(f"Het bestand is bijgewerkt en opgeslagen als {output_file}")
+        print(f"Bestand verwerkt en opgeslagen als {output_file}")
     except Exception as e:
-        print(f"Fout bij het opslaan van het Excel-bestand: {e}")
+        print(f"Fout bij het opslaan van het bestand {file_path}: {e}")
 
-# Uitvoeren
+# Laad het JSON-bestand
 products_data = load_json_file(json_path)
-fill_attribute_values(excel_file, products_data)
+
+# Verwerk alle bestanden in de inputmap
+for file_name in os.listdir(input_folder):
+    if file_name.endswith('.xlsx'):
+        print(f"Verwerken: {file_name}")
+        file_path = os.path.join(input_folder, file_name)
+        fill_attribute_values(file_path, products_data)
