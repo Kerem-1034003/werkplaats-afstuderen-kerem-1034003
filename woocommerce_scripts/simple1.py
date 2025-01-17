@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('../excel/simpledeal/woocommerce/....xlsx')
+df = pd.read_excel('../excel/simpledeal/woocommerce/simpledeal_producten.xlsx')
 
 # Definieer de kolomnamen
 column_post_title = 'post_title'

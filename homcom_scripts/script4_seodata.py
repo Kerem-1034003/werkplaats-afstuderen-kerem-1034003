@@ -14,12 +14,13 @@ openai_api_key = os.getenv('OPENAI_API_KEY2')
 client = OpenAI(api_key=openai_api_key)
 
 # Laad de DataFrame
-df = pd.read_excel('../herschreven_excel/simpledeal/euzil/euzil1.xlsx', dtype={'meta:_alg_ean': str})
+df = pd.read_excel('../herschreven_excel/simpledeal/homcom/output_script3.xlsx', dtype={'meta:_alg_ean': str})
 
 column_post_name = 'post_name'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
 column_meta_title = 'meta:_yoast_wpseo_title'
 column_meta_description = 'meta:_yoast_wpseo_metadesc'
+column_ean = 'meta:_alg_ean'
 column_gtin = 'meta:wpseo_global_identifier_values'
 column_post_title = 'post_title'
 
@@ -28,6 +29,7 @@ company_name = "Simpledeal"
 df[column_meta_title] = df[column_meta_title].astype(str)
 df[column_meta_description] = df[column_meta_description].astype(str)
 df[column_post_name] = df[column_post_name].astype(str)
+df[column_ean] = df[column_ean].astype(str)
 df[column_gtin] = df[column_gtin].astype(str)
 df[column_post_title] = df[column_post_title].astype(str)
 
@@ -143,6 +145,42 @@ def generate_meta_description(post_title, focus_keyword):
         print(f"Error generating meta description: {e}")
         return f"Product beschrijving van {post_title} met focus op {focus_keyword}."
 
+def format_gtin_value(ean_value):
+    print(f"Processing EAN value: {ean_value}")  # Dit helpt bij het debuggen
+
+    ean_value = str(ean_value).strip()  # Converteer de waarde naar string en verwijder extra spaties
+
+    # Verwijder de '.0' als het een float-achtige waarde is
+    if ean_value.endswith(".0"):
+        ean_value = ean_value[:-2]  # Verwijder de laatste twee tekens
+
+    if not ean_value:
+        return json.dumps({
+            "gtin8": "",
+            "gtin12": "",
+            "gtin13": "",
+            "gtin14": "",
+            "isbn": "",
+            "mpn": ""
+        })
+    
+    # Zet de waarde altijd in het gtin13 veld
+    gtin13 = ean_value
+
+    # Format de resulterende waarde als JSON-structuur
+    result = {
+        "gtin8": "",
+        "gtin12": "",
+        "gtin13": gtin13,
+        "gtin14": "",
+        "isbn": "", 
+        "mpn": ""    
+    }
+    
+    time.sleep(1)  # Voeg een korte vertraging toe, indien nodig
+    # Zet het resultaat om naar een JSON-string
+    return json.dumps(result)
+
 # Verwerking van de DataFrame
 for index, row in df.iterrows():
     print(f"Processing row {index + 1} of {len(df)}")
@@ -161,8 +199,13 @@ for index, row in df.iterrows():
     new_meta_description = generate_meta_description(post_title, focus_keyword)
     df.at[index, column_meta_description] = new_meta_description
 
+    # Verwerken van EAN en GTIN
+    ean_value = row[column_ean]
+    formatted_value = format_gtin_value(ean_value)
+    df.at[index, column_gtin] = formatted_value
+
 # Opslaan
-output_file = '../herschreven_excel/simpledeal/euzil/euzil1.1.xlsx'
+output_file = '../herschreven_excel/simpledeal/homcom/output_script4.xlsx'
 df.to_excel(output_file, index=False)
 
 print("Verwerking voltooid! Resultaten zijn opgeslagen in:", output_file)

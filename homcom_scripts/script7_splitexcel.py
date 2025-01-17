@@ -2,10 +2,10 @@ import pandas as pd
 import os
 
 # Bestand inleiden
-df = pd.read_excel('../herschreven_excel/simpledeal/euzil/euzil1.3.xlsx')
+df = pd.read_excel('../herschreven_excel/simpledeal/homcom/output_script6.xlsx')
 
 # Zorg ervoor dat de uitvoermap bestaat
-output_folder = '../herschreven_excel/simpledeal/split/'
+output_folder = '../herschreven_excel/simpledeal/homcomsplit/'
 os.makedirs(output_folder, exist_ok=True)
 
 # Splitsen op basis van de 'tax:product_cat' kolom
@@ -23,7 +23,7 @@ for category in categories:
     category_df = df[df['tax:product_cat'] == category]
     
     # Bestandsnaam op basis van de laatste categorie
-    output_file = f'{output_folder}output_euzil_{last_category}.xlsx'
+    output_file = f'{output_folder}output_{last_category}.xlsx'
     
     # Sla het gefilterde bestand op
     category_df.to_excel(output_file, index=False)

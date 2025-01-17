@@ -13,7 +13,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Gebruik de categorie en het Excel-bestand om de attributen toe te voegen en te vullen
-excel_file = '../herschreven_excel/simpledeal/split/output_euzil_Badkamerkast.xlsx'  # Het bestand van de producten
+excel_file = '../herschreven_excel/simpledeal/euzilsplit/output_Badkamerkast.xlsx'  # Het bestand van de producten
 
 # Laad je JSON-bestand met producten
 with open('../v10_datamodel_v10_nl.json', encoding='utf-8') as json_file:
