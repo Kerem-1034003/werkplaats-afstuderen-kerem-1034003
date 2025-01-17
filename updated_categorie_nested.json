@@ -69,9 +69,6 @@
         "Planken & Rekken": [
             "Badkamerplank",
             "Boekenplank",
-            "Decoratief Rek",
-            "Keukenplank",
-            "Keukenrek",
             "Schoenenrek",
             "Wandplanken"
         ],
@@ -91,12 +88,6 @@
         ]
     },
     "Huishouden": {
-        "Kantoor":[
-            "Kantoor artikelen"
-        ],
-        "Auto":[
-            "Auto Accessoires"
-        ],
         "Keuken":[
             "Keukenkrukken",
             "Keukentrolley",
@@ -104,7 +95,6 @@
             "Prullenbakken"
         ], 
         "Handgereedschap": [
-            "Gewone Systemen",
             "Zaagbokken",
             "Ladders",
             "Gereedschapskoffers",
@@ -119,9 +109,6 @@
             "Opbergkisten",
             "Stellingkasten"
         ],
-        "Schoonmaak": [
-            "Reinigingsapparaten"
-        ],
         "Rond het huis": [
             "Fittingen in de schuifdeur",
             "Luifels",
@@ -129,7 +116,6 @@
             "Kunstplanten",
             "Kluizen",
             "Schuifdeuren",
-            "Wand decoratie",
             "Rol Gordijnen"
         ],
         "Steekwagen": [
@@ -168,18 +154,14 @@
             "Driewielers",
             "Steps",
             "Loopfietsen",
-            "Elektrische voertuigen",
             "Scooter",
             "Skelters"
         ],
         "Speelgoed": [
-            "Kinderen rollenspel",
-            "Muziekinstrument",
             "Poppenhuizen",
             "Puzzelmatten",
             "Schommelende dieren",
-            "Speelbouwstenen",
-            "Speelgoed Opslag"
+            "Speelbouwstenen"
         ]
     },
     "Huisdieren": {
@@ -189,7 +171,6 @@
             "Hondenhokken",
             "Hondenkooien",
             "Hondenzwembaden",
-            "Hondenbuggy",
             "Manden",
             "Draagtassen",
             "Autostoelen voor honden",
@@ -207,7 +188,6 @@
         ],
         "Katten": [
             "Katspeelgoed",
-            "Kattenhuizen",
             "Kattenbakken",
             "Krabpalen"
         ],
@@ -224,7 +204,6 @@
             "Gymnastiek en Yoga",
             "Trampolines & Accessoires",
             "Voetbaldoel",
-            "Watersport",
             "Badminton"
         ],
         "Boksen":[
@@ -265,20 +244,15 @@
         "Tuin accessoires": [
             "Tuinslangen",
             "Tuinwagen",
-            "Bijenteelt",
-            "Tuincomposter",
-            "Tuinzorg"
+            "Tuincomposter"
         ],
         "Tuindecoratie": [
             "Kunstgras",
-            "Tuindeur",
             "Tuin Bruggen",
             "Plantenbak",
             "Plant Tafels",
-            "Decoratie",
             "Fontein",
             "Tuinpoorten",
-            "Rosenbogen",
             "Windschermen",
             "Privacy Protection & Art Hedges",
             "Tuinverlichting"
@@ -293,8 +267,6 @@
             "Campingstoelen",
             "Campingbed",
             "Camping Tafel",
-            "Tenten",
-            "Kamperen en accessoires",
             "Veldbedden",
             "Douchen en toiletkampen"
         ],
@@ -302,16 +274,11 @@
             "Tuinbanken",
             "Tuinstoelen",
             "Tuinmeubelhoezen",
-            "Tuinmeubelen",
-            "Tuinmeubelsets",
             "Dekzeilen",
-            "Loungemeubelen",
             "Ligstoelen",
-            "Zittingsroep",
             "Hangmat",
             "Hangstoel",
-            "Ligbed",
-            "Kindertuin meubels"
+            "Ligbed"
         ]
     }
 }
