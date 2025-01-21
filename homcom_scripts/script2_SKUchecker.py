@@ -19,9 +19,9 @@ def filter_new_products(current_products_file, supplier_products_file, output_fi
     print(f"Nieuwe producten zijn opgeslagen in: {output_file}")
 
 # Bestanden en kolomnaam instellen
-current_products_file =  '../excel/simpledeal/homcom/homcom1.xlsx' # Vervang door je huidige productbestand
-supplier_products_file = '../excel/simpledeal/woocommerce/homcom_producten.xlsx' # Vervang door het bestand van de leverancier
-output_file = '../excel/simpledeal/homcom/oude_homcomproducten.xlsx'  # Uitvoerbestand voor nieuwe producten
+current_products_file =  '../excel/simpledeal/woocommerce/simpledeal_producten.xlsx' # Vervang door je huidige productbestand
+supplier_products_file = '../excel/simpledeal/homcom/homcom1.xlsx' # Vervang door het bestand van de leverancier
+output_file = '../excel/simpledeal/homcom/nieuwe_homcomproducten.xlsx'  # Uitvoerbestand voor nieuwe producten
 sku_column = 'sku'  # Pas aan indien nodig
 
 # Filter nieuwe producten
