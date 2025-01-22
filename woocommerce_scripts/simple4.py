@@ -18,6 +18,8 @@ df = pd.read_excel('../herschreven_excel/simpledeal/simpledeal/script3_part1.xls
 column_images = 'images'
 column_focus_keyword = 'meta:_yoast_wpseo_focuskw'
 
+df[column_images] = df[column_images].astype(str)
+
 # Functie om alt-tekst te genereren en toe te voegen
 def generate_and_add_alt_text(df, images_column='images', focus_keyword_column='meta:_yoast_wpseo_focuskw', max_retries=3):
     for idx, row in df.iterrows():
